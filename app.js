@@ -44,6 +44,8 @@ const syncStatusText = document.getElementById('syncStatusText');
   const authStatusText = document.getElementById('authStatusText');
   const authEmailInput = document.getElementById('authEmailInput');
   const authSubmitButton = document.getElementById('authSubmitButton');
+  const authCodeInput = document.getElementById('authCodeInput');
+  const authVerifyButton = document.getElementById('authVerifyButton');
   const authSignOutButton = document.getElementById('authSignOutButton');
   const authHintText = document.getElementById('authHintText');
   const todayCount = document.getElementById('todayCount');
@@ -1078,29 +1080,76 @@ async function handleAuthSubmit() {
   const email = authEmailInput.value.trim();
   if (!email) {
     setAuthStatus('Enter your email');
-    setAuthHint('Add the email address where you want to receive your sign-in link.');
+    setAuthHint('Add the email address where you want to receive your one-time code.');
     return;
   }
 
   authSubmitButton.disabled = true;
   authSubmitButton.textContent = 'Sending...';
   setAuthStatus('Registering your sign-in request...');
-  setAuthHint('Your request is registered. A secure magic link should arrive in your email shortly.');
+  setAuthHint('Your request is registered. A one-time sign-in code should arrive in your email shortly.');
 
-  const { error } = await supabaseClient.auth.signInWithOtp({ email });
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+
   if (error) {
     authSubmitButton.disabled = false;
-    authSubmitButton.textContent = 'Send magic link';
+    authSubmitButton.textContent = 'Send code';
     setAuthStatus(error.message || 'Sign-in failed');
     setAuthHint('Something went wrong while registering your sign-in request. Please try again.');
     return;
   }
 
   authSubmitButton.disabled = false;
-  authSubmitButton.textContent = 'Magic link sent';
+  authSubmitButton.textContent = 'Code sent';
   setAuthStatus('Request registered');
-  setAuthHint('Your sign-in request is registered. Please check your inbox and spam folder for the magic link.');
-  authEmailInput.value = '';
+  setAuthHint('Your sign-in request is registered. Please check your inbox and spam folder for the one-time code.');
+  authCodeInput?.focus();
+}
+
+async function handleAuthVerify() {
+  if (!supabaseClient || !authEmailInput || !authCodeInput) return;
+
+  const email = authEmailInput.value.trim();
+  const token = authCodeInput.value.trim();
+
+  if (!email) {
+    setAuthStatus('Enter your email');
+    setAuthHint('Add the email address that received your one-time code.');
+    return;
+  }
+
+  if (!token) {
+    setAuthStatus('Enter the code');
+    setAuthHint('Type the 6-digit code sent to your email.');
+    return;
+  }
+
+  authVerifyButton.disabled = true;
+  setAuthStatus('Verifying your sign-in code...');
+  setAuthHint('Checking the one-time code and signing you in.');
+
+  const { data, error } = await supabaseClient.auth.verifyOtp({
+    email,
+    token,
+    type: 'email',
+  });
+
+  if (error) {
+    authVerifyButton.disabled = false;
+    setAuthStatus(error.message || 'Verification failed');
+    setAuthHint('That code did not work. Please request a new one and try again.');
+    return;
+  }
+
+  authVerifyButton.disabled = false;
+  currentUser = data?.user || data?.session?.user || null;
+  authCodeInput.value = '';
+  setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
+  setAuthHint('Your email was verified successfully.');
+  setSyncStatus('Synced', true);
 }
 
 async function handleAuthSignOut() {
@@ -1158,6 +1207,10 @@ async function initializeAuth() {
 function bindUI() {
   if (authSubmitButton) {
     authSubmitButton.addEventListener('click', handleAuthSubmit);
+  }
+
+  if (authVerifyButton) {
+    authVerifyButton.addEventListener('click', handleAuthVerify);
   }
 
   if (authSignOutButton) {

@@ -93,10 +93,12 @@
         </div>
         <div class="auth-controls">
           <input id="authEmailInput" type="email" placeholder="you@example.com" autocomplete="email" />
-          <button id="authSubmitButton" class="sync-button" type="button">Send magic link</button>
+          <button id="authSubmitButton" class="sync-button" type="button">Send code</button>
+          <input id="authCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code" autocomplete="one-time-code" />
+          <button id="authVerifyButton" class="sync-button" type="button">Verify code</button>
           <button id="authSignOutButton" class="ghost-button secondary-button" type="button">Sign out</button>
         </div>
-        <p id="authHintText" class="auth-hint">Enter your email to receive a secure sign-in link.</p>
+        <p id="authHintText" class="auth-hint">Enter your email to receive a one-time sign-in code.</p>
       </section>
 
       <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
