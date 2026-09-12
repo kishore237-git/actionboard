@@ -1165,7 +1165,12 @@ async function handleAuthVerify() {
   authCodeInput.value = '';
   setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
   setAuthHint('Your email was verified successfully.');
-  setSyncStatus('Synced', true);
+
+  if (currentUser) {
+    await pullActionsFromServer({ silent: false });
+    renderActions();
+    setSyncStatus('Synced', true);
+  }
 }
 
 async function handleAuthSignOut() {
