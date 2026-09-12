@@ -23,6 +23,10 @@
           <h1>Pulse Notes</h1>
         </div>
         <div class="topbar-actions">
+          <span class="connection-pill" aria-live="polite">
+            <span id="connectionDot" class="status-dot offline" aria-hidden="true"></span>
+            <span id="connectionLabel">Offline</span>
+          </span>
           <button id="darkModeToggle" class="icon-button" aria-label="Toggle dark mode">
             <span>🌙</span>
           </button>
@@ -73,9 +77,12 @@
 
       <section class="sync-panel card">
         <div class="sync-header">
-          <div>
+          <div class="sync-status-wrap">
             <p class="sync-label">Cloud sync</p>
-            <strong id="syncStatusText">Offline</strong>
+            <div class="sync-status-row">
+              <span id="syncDot" class="status-dot offline" aria-hidden="true"></span>
+              <strong id="syncStatusText">Offline</strong>
+            </div>
           </div>
           <div class="sync-actions">
             <button id="installButton" class="sync-button install-button" type="button" hidden>Install app</button>
@@ -84,7 +91,7 @@
         </div>
       </section>
 
-      <section class="auth-panel card" aria-label="Authentication panel">
+      <section id="authPanel" class="auth-panel card" aria-label="Authentication panel">
         <div class="auth-header">
           <div>
             <p class="sync-label">Account</p>

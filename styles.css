@@ -303,6 +303,40 @@ h1 {
   margin-bottom: 16px;
 }
 
+.connection-pill,
+.sync-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.status-dot.online {
+  background: #22c55e;
+  color: #22c55e;
+}
+
+.status-dot.offline {
+  background: #ef4444;
+  color: #ef4444;
+}
+
+.connection-pill {
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.16);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
 .auth-panel {
   margin-bottom: 16px;
   padding: 14px 16px;

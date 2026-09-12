@@ -41,13 +41,17 @@ const actionList = document.getElementById('actionList');
 const syncButton = document.getElementById('syncButton');
 const installButton = document.getElementById('installButton');
 const syncStatusText = document.getElementById('syncStatusText');
-  const authStatusText = document.getElementById('authStatusText');
-  const authEmailInput = document.getElementById('authEmailInput');
-  const authSubmitButton = document.getElementById('authSubmitButton');
-  const authCodeInput = document.getElementById('authCodeInput');
-  const authVerifyButton = document.getElementById('authVerifyButton');
-  const authSignOutButton = document.getElementById('authSignOutButton');
-  const authHintText = document.getElementById('authHintText');
+const syncDot = document.getElementById('syncDot');
+const connectionDot = document.getElementById('connectionDot');
+const connectionLabel = document.getElementById('connectionLabel');
+const authPanel = document.getElementById('authPanel');
+const authStatusText = document.getElementById('authStatusText');
+const authEmailInput = document.getElementById('authEmailInput');
+const authSubmitButton = document.getElementById('authSubmitButton');
+const authCodeInput = document.getElementById('authCodeInput');
+const authVerifyButton = document.getElementById('authVerifyButton');
+const authSignOutButton = document.getElementById('authSignOutButton');
+const authHintText = document.getElementById('authHintText');
   const todayCount = document.getElementById('todayCount');
   const highPriorityCount = document.getElementById('highPriorityCount');
   const overdueCount = document.getElementById('overdueCount');
@@ -139,6 +143,16 @@ function loadActions() {
   }
 }
 
+function normalizeCurrentUserActions() {
+  if (!currentUser) return;
+
+  state.actions = state.actions.map((action) => ({
+    ...action,
+    userId: action.userId || currentUser.id,
+  }));
+  saveActions();
+}
+
 function saveActions() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(dedupeActions(state.actions)));
 }
@@ -163,6 +177,20 @@ function setSyncStatus(label, isSynced = false) {
   if (!syncStatusText) return;
   syncStatusText.textContent = label;
   syncStatusText.style.color = isSynced ? '#16a34a' : '#f59e0b';
+
+  if (syncDot) {
+    syncDot.classList.toggle('online', isSynced);
+    syncDot.classList.toggle('offline', !isSynced);
+  }
+
+  if (connectionDot) {
+    connectionDot.classList.toggle('online', isSynced);
+    connectionDot.classList.toggle('offline', !isSynced);
+  }
+
+  if (connectionLabel) {
+    connectionLabel.textContent = label;
+  }
 }
 
 function setAuthStatus(label) {
@@ -173,6 +201,11 @@ function setAuthStatus(label) {
 function setAuthHint(label) {
   if (!authHintText) return;
   authHintText.textContent = label;
+}
+
+function syncAuthVisibility() {
+  if (!authPanel) return;
+  authPanel.hidden = Boolean(currentUser);
 }
 
 function getActionOwnerId(action) {
@@ -651,7 +684,9 @@ function renderDoneSection(doneActions) {
 }
 
 function renderActions() {
-  if (supabaseClient && !currentUser) {
+  const hasSignedInUser = Boolean(currentUser);
+
+  if (supabaseClient && !hasSignedInUser && !state.actions.some((action) => action.userId || action.user_id)) {
     actionList.innerHTML = '<div class="empty-state">Please sign in to view your actions.</div>';
     renderSummary();
     return;
@@ -1163,10 +1198,12 @@ async function handleAuthVerify() {
   authVerifyButton.disabled = false;
   currentUser = data?.user || data?.session?.user || null;
   authCodeInput.value = '';
-  setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
-  setAuthHint('Your email was verified successfully.');
 
   if (currentUser) {
+    normalizeCurrentUserActions();
+    setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
+    setAuthHint('Your email was verified successfully.');
+    syncAuthVisibility();
     await pullActionsFromServer({ silent: false });
     renderActions();
     setSyncStatus('Synced', true);
@@ -1183,6 +1220,7 @@ async function handleAuthSignOut() {
   }
 
   currentUser = null;
+  syncAuthVisibility();
   setAuthStatus('Not signed in');
   setAuthHint('Enter your email to receive a secure sign-in link.');
   setSyncStatus('Sign in required', false);
@@ -1204,18 +1242,27 @@ async function initializeAuth() {
 
   currentUser = session?.user || null;
   if (currentUser) {
+    normalizeCurrentUserActions();
+    syncAuthVisibility();
     setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
+    setSyncStatus('Synced', true);
+    await pullActionsFromServer({ silent: false });
+    renderActions();
   } else {
+    syncAuthVisibility();
     setAuthStatus('Not signed in');
     setSyncStatus('Sign in required', false);
   }
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session?.user || null;
+    syncAuthVisibility();
     if (currentUser) {
+      normalizeCurrentUserActions();
       setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
       setSyncStatus('Synced', true);
       pullActionsFromServer({ silent: false });
+      renderActions();
     } else {
       setAuthStatus('Not signed in');
       setSyncStatus('Sign in required', false);
