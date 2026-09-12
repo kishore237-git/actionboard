@@ -1123,7 +1123,7 @@ async function handleAuthVerify() {
 
   if (!token) {
     setAuthStatus('Enter the code');
-    setAuthHint('Type the 6-digit code sent to your email.');
+    setAuthHint('Type the code sent to your email.');
     return;
   }
 
