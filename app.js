@@ -851,6 +851,10 @@ function addAction() {
   resetComposerForm();
   setComposerExpanded(false);
   renderActions();
+
+  if (supabaseClient && currentUser) {
+    syncActionsToServer();
+  }
 }
 
 function toggleAction(id) {
@@ -867,6 +871,10 @@ function toggleAction(id) {
   });
   saveActions();
   renderActions();
+
+  if (supabaseClient && currentUser) {
+    syncActionsToServer();
+  }
 }
 
 function deleteAction(id) {
@@ -882,6 +890,10 @@ function deleteAction(id) {
   });
   saveActions();
   renderActions();
+
+  if (supabaseClient && currentUser) {
+    syncActionsToServer();
+  }
 }
 
 function startEditAction(id) {
@@ -932,6 +944,10 @@ function saveEditAction(id) {
   saveActions();
   state.editingId = null;
   renderActions();
+
+  if (supabaseClient && currentUser) {
+    syncActionsToServer();
+  }
 }
 
 function handleActionListClick(event) {
