@@ -1,9 +1,9 @@
-const CACHE_NAME = 'pulse-notes-v2';
+const CACHE_NAME = 'pulse-notes-v3';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=20260913.1',
-  './app.js?v=20260913.1',
+  './styles.css?v=20260913.2',
+  './app.js?v=20260913.2',
   './manifest.webmanifest',
   './icons/icon.svg'
 ];
