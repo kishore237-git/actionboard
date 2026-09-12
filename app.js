@@ -17,7 +17,15 @@ if (window.__pulseNotesAppBootstrapped) {
     SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co' &&
     SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY'
   );
-  const supabaseClient = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  const supabaseClient = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storage: window.localStorage,
+      storageKey: 'pulse-notes-auth-v1',
+    },
+  }) : null;
 
   let selectedCategory = 'work';
   let selectedImportance = 2;
@@ -155,6 +163,32 @@ function normalizeCurrentUserActions() {
 
 function saveActions() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(dedupeActions(state.actions)));
+}
+
+async function refreshSupabaseSession() {
+  if (!supabaseClient) return null;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) {
+      applySignedOutState('Session expired');
+      return null;
+    }
+
+    const nextUser = data?.session?.user || null;
+    currentUser = nextUser;
+    if (!nextUser) {
+      applySignedOutState('Not signed in');
+      return null;
+    }
+
+    normalizeCurrentUserActions();
+    applySignedInState(nextUser);
+    return nextUser;
+  } catch (error) {
+    applySignedOutState('Session expired');
+    return null;
+  }
 }
 
 function isDeleted(action) {
@@ -1218,25 +1252,15 @@ async function handleAuthVerify() {
   }
 
   authVerifyButton.disabled = false;
-  const verifiedUser = data?.user || data?.session?.user || null;
   authCodeInput.value = '';
 
-  if (!verifiedUser) {
+  const refreshedUser = await refreshSupabaseSession();
+  if (!refreshedUser) {
     applySignedOutState('Could not confirm session');
     setAuthHint('The code was accepted, but the session could not be confirmed. Please sign in again.');
     return;
   }
 
-  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-  if (sessionError || !session?.user) {
-    applySignedOutState('Could not confirm session');
-    setAuthHint('Your sign-in session could not be confirmed. Please sign in again.');
-    return;
-  }
-
-  currentUser = session.user;
-  normalizeCurrentUserActions();
-  applySignedInState(currentUser);
   await pullActionsFromServer({ silent: false });
   renderActions();
 }
@@ -1278,7 +1302,13 @@ async function initializeAuth() {
     await pullActionsFromServer({ silent: false });
     renderActions();
   } else {
-    applySignedOutState('Not signed in');
+    const hydrated = await refreshSupabaseSession();
+    if (hydrated) {
+      await pullActionsFromServer({ silent: false });
+      renderActions();
+    } else {
+      applySignedOutState('Not signed in');
+    }
   }
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
