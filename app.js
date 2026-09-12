@@ -58,7 +58,6 @@ const authEmailInput = document.getElementById('authEmailInput');
 const authSubmitButton = document.getElementById('authSubmitButton');
 const authCodeInput = document.getElementById('authCodeInput');
 const authVerifyButton = document.getElementById('authVerifyButton');
-const authSignOutButton = document.getElementById('authSignOutButton');
 const authHintText = document.getElementById('authHintText');
   const todayCount = document.getElementById('todayCount');
   const highPriorityCount = document.getElementById('highPriorityCount');
@@ -245,7 +244,6 @@ function syncAuthVisibility() {
 function applySignedOutState(message = 'Not signed in') {
   currentUser = null;
   syncAuthVisibility();
-  if (authSignOutButton) authSignOutButton.hidden = true;
   setAuthStatus(message);
   setAuthHint('Enter your email to receive a one-time sign-in code.');
   setSyncStatus('Sign in required', false);
@@ -255,7 +253,6 @@ function applySignedOutState(message = 'Not signed in') {
 function applySignedInState(user) {
   currentUser = user || null;
   syncAuthVisibility();
-  if (authSignOutButton) authSignOutButton.hidden = false;
   setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
   setAuthHint('Your email was verified successfully.');
   setSyncStatus('Synced', true);
@@ -376,7 +373,11 @@ async function pullActionsFromServer({ silent = false } = {}) {
     }
 
     try {
-      const { data, error } = await supabaseClient.from('actions').select('*').eq('user_id', currentUser.id);
+      const { data, error } = await supabaseClient
+        .from('actions')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('updated_at', { ascending: false });
       if (error) {
         if (/(JWT|session|auth|permission|row level security|policy)/i.test(error.message || '')) {
           applySignedOutState('Session expired');
@@ -388,8 +389,7 @@ async function pullActionsFromServer({ silent = false } = {}) {
       }
 
       const remoteActions = Array.isArray(data) ? data.map(fromSupabaseRow) : [];
-      const merged = mergeActions(remoteActions, state.actions.filter((action) => isActionOwnedByCurrentUser(action)));
-      state.actions = dedupeActions(merged);
+      state.actions = dedupeActions(remoteActions);
       saveActions();
       renderActions();
 
@@ -1286,23 +1286,6 @@ async function handleAuthVerify() {
   renderActions();
 }
 
-async function handleAuthSignOut() {
-  if (!supabaseClient) return;
-
-  const { error } = await supabaseClient.auth.signOut();
-  if (error) {
-    setAuthStatus(error.message || 'Sign out failed');
-    return;
-  }
-
-  currentUser = null;
-  syncAuthVisibility();
-  setAuthStatus('Not signed in');
-  setAuthHint('Enter your email to receive a one-time sign-in code.');
-  setSyncStatus('Sign in required', false);
-  renderActions();
-}
-
 async function initializeAuth() {
   if (!supabaseClient) {
     currentUser = null;
@@ -1354,10 +1337,6 @@ function bindUI() {
 
   if (authVerifyButton) {
     authVerifyButton.addEventListener('click', handleAuthVerify);
-  }
-
-  if (authSignOutButton) {
-    authSignOutButton.addEventListener('click', handleAuthSignOut);
   }
 
   window.addEventListener('focus', () => {
