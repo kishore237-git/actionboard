@@ -1076,28 +1076,28 @@ async function handleAuthSubmit() {
   const email = authEmailInput.value.trim();
   if (!email) {
     setAuthStatus('Enter your email');
-    setAuthHint('Add the email address you want to use for magic-link sign in.');
+    setAuthHint('Add the email address where you want to receive your sign-in link.');
     return;
   }
 
   authSubmitButton.disabled = true;
   authSubmitButton.textContent = 'Sending...';
-  setAuthStatus('Sending magic link...');
-  setAuthHint('We’ll send a secure sign-in link to your inbox shortly.');
+  setAuthStatus('Registering your sign-in request...');
+  setAuthHint('Your request is registered. A secure magic link should arrive in your email shortly.');
 
   const { error } = await supabaseClient.auth.signInWithOtp({ email });
   if (error) {
     authSubmitButton.disabled = false;
     authSubmitButton.textContent = 'Send magic link';
     setAuthStatus(error.message || 'Sign-in failed');
-    setAuthHint('Something went wrong while sending the magic link. Please try again.');
+    setAuthHint('Something went wrong while registering your sign-in request. Please try again.');
     return;
   }
 
   authSubmitButton.disabled = false;
   authSubmitButton.textContent = 'Magic link sent';
-  setAuthStatus('Check your email for the sign-in link');
-  setAuthHint('A secure magic link has been sent. Please check your inbox and spam folder.');
+  setAuthStatus('Request registered');
+  setAuthHint('Your sign-in request is registered. Please check your inbox and spam folder for the magic link.');
   authEmailInput.value = '';
 }
 
@@ -1112,6 +1112,7 @@ async function handleAuthSignOut() {
 
   currentUser = null;
   setAuthStatus('Not signed in');
+  setAuthHint('Enter your email to receive a secure sign-in link.');
   setSyncStatus('Sign in required', false);
   renderActions();
 }
