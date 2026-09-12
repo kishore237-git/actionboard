@@ -45,6 +45,7 @@ const syncStatusText = document.getElementById('syncStatusText');
   const authEmailInput = document.getElementById('authEmailInput');
   const authSubmitButton = document.getElementById('authSubmitButton');
   const authSignOutButton = document.getElementById('authSignOutButton');
+  const authHintText = document.getElementById('authHintText');
   const todayCount = document.getElementById('todayCount');
   const highPriorityCount = document.getElementById('highPriorityCount');
   const overdueCount = document.getElementById('overdueCount');
@@ -163,6 +164,11 @@ function setSyncStatus(label, isSynced = false) {
 function setAuthStatus(label) {
   if (!authStatusText) return;
   authStatusText.textContent = label;
+}
+
+function setAuthHint(label) {
+  if (!authHintText) return;
+  authHintText.textContent = label;
 }
 
 function getActionOwnerId(action) {
@@ -1070,16 +1076,28 @@ async function handleAuthSubmit() {
   const email = authEmailInput.value.trim();
   if (!email) {
     setAuthStatus('Enter your email');
+    setAuthHint('Add the email address you want to use for magic-link sign in.');
     return;
   }
+
+  authSubmitButton.disabled = true;
+  authSubmitButton.textContent = 'Sending...';
+  setAuthStatus('Sending magic link...');
+  setAuthHint('We’ll send a secure sign-in link to your inbox shortly.');
 
   const { error } = await supabaseClient.auth.signInWithOtp({ email });
   if (error) {
+    authSubmitButton.disabled = false;
+    authSubmitButton.textContent = 'Send magic link';
     setAuthStatus(error.message || 'Sign-in failed');
+    setAuthHint('Something went wrong while sending the magic link. Please try again.');
     return;
   }
 
-  setAuthStatus('Check your email for the login link');
+  authSubmitButton.disabled = false;
+  authSubmitButton.textContent = 'Magic link sent';
+  setAuthStatus('Check your email for the sign-in link');
+  setAuthHint('A secure magic link has been sent. Please check your inbox and spam folder.');
   authEmailInput.value = '';
 }
 

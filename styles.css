@@ -334,6 +334,13 @@ h1 {
   font: inherit;
 }
 
+.auth-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
 .sync-header {
   display: flex;
   align-items: center;

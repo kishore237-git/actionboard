@@ -96,6 +96,7 @@
           <button id="authSubmitButton" class="sync-button" type="button">Send magic link</button>
           <button id="authSignOutButton" class="ghost-button secondary-button" type="button">Sign out</button>
         </div>
+        <p id="authHintText" class="auth-hint">We’ll email you a magic link to sign in securely.</p>
       </section>
 
       <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
@@ -179,8 +180,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       window.__PULSE_NOTES_SUPABASE__ = window.__PULSE_NOTES_SUPABASE__ || {};
-      window.SUPABASE_URL = window.__PULSE_NOTES_SUPABASE__.url || 'https://stalwkqpwjivqrejlsig.supabase.co';
-      window.SUPABASE_ANON_KEY = window.__PULSE_NOTES_SUPABASE__.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
+      window.SUPABASE_URL = 'https://stalwkqpwjivqrejlsig.supabase.co';
+      window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
     </script>
     <script src="sort-logic.js"></script>
     <script src="app.js?v=20260912.8"></script>
