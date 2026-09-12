@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="theme-color" content="#111827" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pulse Notes" />
+    <title>Pulse Notes</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=20260912.8" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Action board</p>
+          <h1>Pulse Notes</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="darkModeToggle" class="icon-button" aria-label="Toggle dark mode">
+            <span>🌙</span>
+          </button>
+          <button id="voiceButton" class="mic-button" aria-label="Use voice input">
+            <span>🎙</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="summary-panel" aria-label="Action summary">
+        <button type="button" class="summary-item filter-item" data-filter="today" aria-pressed="false">
+          <div class="summary-icon" aria-hidden="true">📅</div>
+          <div class="summary-copy">
+            <span class="label">Today</span>
+            <strong id="todayCount">0</strong>
+          </div>
+        </button>
+        <button type="button" class="summary-item filter-item" data-filter="high" aria-pressed="false">
+          <div class="summary-icon" aria-hidden="true">⚡</div>
+          <div class="summary-copy">
+            <span class="label">High</span>
+            <strong id="highPriorityCount">0</strong>
+          </div>
+        </button>
+        <button type="button" class="summary-item filter-item" data-filter="late" aria-pressed="false">
+          <div class="summary-icon" aria-hidden="true">⏰</div>
+          <div class="summary-copy">
+            <span class="label">Late</span>
+            <strong id="overdueCount">0</strong>
+          </div>
+        </button>
+        <button type="button" class="summary-item filter-item" data-filter="done" aria-pressed="false">
+          <div class="summary-icon" aria-hidden="true">✓</div>
+          <div class="summary-copy">
+            <span class="label">Done</span>
+            <strong id="doneCount">0</strong>
+          </div>
+        </button>
+      </section>
+
+      <section class="context-panel card" aria-label="Action categories">
+        <div class="context-group" role="group" aria-label="Context filters">
+          <button type="button" class="context-pill active" data-category-filter="all">All</button>
+          <button type="button" class="context-pill" data-category-filter="work">Work</button>
+          <button type="button" class="context-pill" data-category-filter="personal">Personal</button>
+        </div>
+      </section>
+
+      <section class="sync-panel card">
+        <div class="sync-header">
+          <div>
+            <p class="sync-label">Cloud sync</p>
+            <strong id="syncStatusText">Offline</strong>
+          </div>
+          <div class="sync-actions">
+            <button id="installButton" class="sync-button install-button" type="button" hidden>Install app</button>
+            <button id="syncButton" class="sync-button" type="button">Sync now</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
+        <div class="composer-collapsed-header">
+          <div class="quick-add-summary">
+            <span class="quick-add-icon">＋</span>
+            <span>Quick add</span>
+          </div>
+          <button id="composerExpandButton" class="primary-button composer-expand-button" type="button">New action</button>
+        </div>
+
+        <div class="composer-body">
+          <div class="row compact-row">
+            <button class="category-pill active" data-category="work" type="button">Work</button>
+            <button class="category-pill" data-category="personal" type="button">Personal</button>
+          </div>
+
+          <label class="sr-only" for="actionInput">Action</label>
+          <textarea id="actionInput" rows="2" placeholder="Capture the next action..." autocomplete="off"></textarea>
+
+          <div class="date-row">
+            <label class="date-label" for="notesInput">Notes</label>
+            <textarea id="notesInput" rows="2" placeholder="Add any extra detail or context..." autocomplete="off"></textarea>
+          </div>
+
+          <div class="date-row">
+            <label class="date-label" for="dueDateInput">Reminder</label>
+            <input id="dueDateInput" type="date" />
+          </div>
+
+          <div class="priority-row">
+            <div class="priority-block importance-panel" aria-label="Importance selector">
+              <div class="segmented premium-segmented" id="importanceGroup">
+                <button type="button" class="segmented-button" data-importance="1" aria-label="Low importance" title="Low importance"><span class="priority-icon">↧</span></button>
+                <button type="button" class="segmented-button active" data-importance="2" aria-label="Medium importance" title="Medium importance"><span class="priority-icon">◉</span></button>
+                <button type="button" class="segmented-button" data-importance="3" aria-label="High importance" title="High importance"><span class="priority-icon">✦</span></button>
+              </div>
+            </div>
+
+            <div class="priority-block urgency-panel" aria-label="Urgency selector">
+              <div class="segmented premium-segmented" id="urgencyGroup">
+                <button type="button" class="segmented-button" data-urgency="1" aria-label="Low urgency" title="Low urgency"><span class="priority-icon">⏳</span></button>
+                <button type="button" class="segmented-button active" data-urgency="2" aria-label="Medium urgency" title="Medium urgency"><span class="priority-icon">⏱</span></button>
+                <button type="button" class="segmented-button" data-urgency="3" aria-label="High urgency" title="High urgency"><span class="priority-icon">⚡</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-actions">
+            <button id="cancelActionButton" class="ghost-button secondary-button" type="button">Cancel</button>
+            <button id="addActionButton" class="primary-button" type="button">Add action</button>
+          </div>
+
+          <div class="gesture-hint">Swipe left = done, swipe right = delete</div>
+        </div>
+      </section>
+
+      <section class="list-header">
+        <div class="header-title-group">
+          <h2>Priority view</h2>
+          <div class="view-switcher" aria-label="View selector">
+            <button class="view-tab active" data-view="list" type="button">List</button>
+            <button class="view-tab" data-view="timeline" type="button">Timeline</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="sort-panel" aria-label="Action sorting">
+        <span class="sort-label">Sort</span>
+        <div class="sort-tabs">
+          <button class="sort-tab active" data-sort="priority" type="button">Priority</button>
+          <button class="sort-tab" data-sort="recent" type="button">Recent</button>
+          <button class="sort-tab" data-sort="urgent" type="button">Urgent</button>
+          <button class="sort-tab" data-sort="overdue" type="button">Overdue</button>
+        </div>
+      </section>
+
+      <section id="actionList" class="action-list" aria-live="polite"></section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      window.__PULSE_NOTES_SUPABASE__ = window.__PULSE_NOTES_SUPABASE__ || {};
+      window.SUPABASE_URL = window.__PULSE_NOTES_SUPABASE__.url || 'https://stalwkqpwjivqrejlsig.supabase.co';
+      window.SUPABASE_ANON_KEY = window.__PULSE_NOTES_SUPABASE__.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
+    </script>
+    <script src="sort-logic.js"></script>
+    <script src="app.js?v=20260912.8"></script>
+  </body>
+</html>

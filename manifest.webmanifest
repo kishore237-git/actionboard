@@ -1,0 +1,18 @@
+{
+  "name": "Pulse Notes",
+  "short_name": "Pulse",
+  "description": "Minimal action note taker for work and personal priorities.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
