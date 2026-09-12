@@ -208,6 +208,23 @@ function syncAuthVisibility() {
   authPanel.hidden = Boolean(currentUser);
 }
 
+function applySignedOutState(message = 'Not signed in') {
+  currentUser = null;
+  syncAuthVisibility();
+  setAuthStatus(message);
+  setAuthHint('Enter your email to receive a one-time sign-in code.');
+  setSyncStatus('Sign in required', false);
+  renderActions();
+}
+
+function applySignedInState(user) {
+  currentUser = user || null;
+  syncAuthVisibility();
+  setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
+  setAuthHint('Your email was verified successfully.');
+  setSyncStatus('Synced', true);
+}
+
 function getActionOwnerId(action) {
   return action?.user_id || action?.userId || null;
 }
@@ -320,6 +337,11 @@ async function pullActionsFromServer({ silent = false } = {}) {
     try {
       const { data, error } = await supabaseClient.from('actions').select('*').eq('user_id', currentUser.id);
       if (error) {
+        if (/(JWT|session|auth|permission|row level security|policy)/i.test(error.message || '')) {
+          applySignedOutState('Session expired');
+          setAuthHint('Your sign-in session is no longer valid. Please sign in again.');
+          return;
+        }
         if (!silent) setSyncStatus('Offline', false);
         return;
       }
@@ -1196,18 +1218,27 @@ async function handleAuthVerify() {
   }
 
   authVerifyButton.disabled = false;
-  currentUser = data?.user || data?.session?.user || null;
+  const verifiedUser = data?.user || data?.session?.user || null;
   authCodeInput.value = '';
 
-  if (currentUser) {
-    normalizeCurrentUserActions();
-    setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
-    setAuthHint('Your email was verified successfully.');
-    syncAuthVisibility();
-    await pullActionsFromServer({ silent: false });
-    renderActions();
-    setSyncStatus('Synced', true);
+  if (!verifiedUser) {
+    applySignedOutState('Could not confirm session');
+    setAuthHint('The code was accepted, but the session could not be confirmed. Please sign in again.');
+    return;
   }
+
+  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError || !session?.user) {
+    applySignedOutState('Could not confirm session');
+    setAuthHint('Your sign-in session could not be confirmed. Please sign in again.');
+    return;
+  }
+
+  currentUser = session.user;
+  normalizeCurrentUserActions();
+  applySignedInState(currentUser);
+  await pullActionsFromServer({ silent: false });
+  renderActions();
 }
 
 async function handleAuthSignOut() {
@@ -1222,7 +1253,7 @@ async function handleAuthSignOut() {
   currentUser = null;
   syncAuthVisibility();
   setAuthStatus('Not signed in');
-  setAuthHint('Enter your email to receive a secure sign-in link.');
+  setAuthHint('Enter your email to receive a one-time sign-in code.');
   setSyncStatus('Sign in required', false);
   renderActions();
 }
@@ -1243,29 +1274,22 @@ async function initializeAuth() {
   currentUser = session?.user || null;
   if (currentUser) {
     normalizeCurrentUserActions();
-    syncAuthVisibility();
-    setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
-    setSyncStatus('Synced', true);
+    applySignedInState(currentUser);
     await pullActionsFromServer({ silent: false });
     renderActions();
   } else {
-    syncAuthVisibility();
-    setAuthStatus('Not signed in');
-    setSyncStatus('Sign in required', false);
+    applySignedOutState('Not signed in');
   }
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session?.user || null;
-    syncAuthVisibility();
     if (currentUser) {
       normalizeCurrentUserActions();
-      setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
-      setSyncStatus('Synced', true);
+      applySignedInState(currentUser);
       pullActionsFromServer({ silent: false });
       renderActions();
     } else {
-      setAuthStatus('Not signed in');
-      setSyncStatus('Sign in required', false);
+      applySignedOutState('Not signed in');
       state.actions = [];
       renderActions();
     }
