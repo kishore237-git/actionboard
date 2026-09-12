@@ -1556,8 +1556,8 @@ async function init() {
   const syncState = getSyncState();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js').catch((error) => {
-      console.warn('Service worker registration failed:', error);
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => registration.unregister());
     });
   }
 
