@@ -604,6 +604,9 @@ textarea {
   width: 100%;
   min-height: 96px;
   resize: vertical;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: text;
   border: 1px solid rgba(17, 24, 39, 0.08);
   border-radius: 16px;
   background: linear-gradient(180deg, #fbfcff 0%, #f2f6ff 100%);
@@ -620,6 +623,11 @@ textarea {
   justify-content: space-between;
   gap: 8px;
   margin: 12px 0 10px;
+}
+
+#notesInput {
+  position: relative;
+  z-index: 1;
 }
 
 .date-label {

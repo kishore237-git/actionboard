@@ -323,13 +323,27 @@ async function syncActionsToServer() {
     try {
       setSyncStatus('Syncing...', false);
 
-      const rows = state.actions
-        .filter((action) => isActionOwnedByCurrentUser(action) || action.id === null)
-        .map(toSupabaseRow)
-        .filter((row) => row.user_id);
+      const { data: remoteData, error: remoteError } = await supabaseClient
+        .from('actions')
+        .select('*')
+        .eq('user_id', currentUser.id);
+      if (remoteError) throw remoteError;
 
-      const { error } = await supabaseClient.from('actions').upsert(rows, { onConflict: 'id' });
-      if (error) throw error;
+      const remoteById = new Map((remoteData || []).map((row) => [row.id, fromSupabaseRow(row)]));
+      const rows = getPendingActions()
+        .filter((action) => isActionOwnedByCurrentUser(action) || !getActionOwnerId(action))
+        .map((action) => ({ action, remote: remoteById.get(action.id) }))
+        .filter(({ action, remote }) => {
+          const localUpdatedAt = new Date(action.updatedAt || action.createdAt || 0).getTime();
+          const remoteUpdatedAt = new Date(remote?.updatedAt || remote?.createdAt || 0).getTime();
+          return !remote || localUpdatedAt > remoteUpdatedAt;
+        })
+        .map(({ action }) => toSupabaseRow(action));
+
+      if (rows.length) {
+        const { error } = await supabaseClient.from('actions').upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+      }
 
       const { data, error: readError } = await supabaseClient
         .from('actions')
