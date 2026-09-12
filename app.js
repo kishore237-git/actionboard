@@ -584,6 +584,15 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+function formatDateForInput(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return date.toISOString().split('T')[0];
+}
+
 function formatActionTimestamp(action) {
   const timestamp = new Date(action.updatedAt || action.createdAt);
   if (Number.isNaN(timestamp.getTime())) return '';
