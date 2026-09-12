@@ -33,6 +33,9 @@
           <button id="voiceButton" class="mic-button" aria-label="Use voice input">
             <span>🎙</span>
           </button>
+          <button id="authSignOutButton" class="sign-out-button" type="button" aria-label="Sign out" title="Sign out" hidden>
+            <span aria-hidden="true">↪</span>
+          </button>
         </div>
       </header>
 
@@ -103,7 +106,6 @@
           <button id="authSubmitButton" class="sync-button" type="button">Send code</button>
           <input id="authCodeInput" type="text" inputmode="numeric" maxlength="8" placeholder="Enter 6–8 digit code" autocomplete="one-time-code" />
           <button id="authVerifyButton" class="sync-button" type="button">Verify code</button>
-          <button id="authSignOutButton" class="ghost-button secondary-button" type="button">Sign out</button>
         </div>
         <p id="authHintText" class="auth-hint">Enter your email to receive a one-time sign-in code.</p>
       </section>

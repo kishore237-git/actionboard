@@ -292,6 +292,22 @@ h1 {
   color: white;
 }
 
+.sign-out-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.sign-out-button:hover {
+  color: var(--text);
+  border-color: var(--primary);
+}
+
 .summary-panel {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -245,6 +245,7 @@ function syncAuthVisibility() {
 function applySignedOutState(message = 'Not signed in') {
   currentUser = null;
   syncAuthVisibility();
+  if (authSignOutButton) authSignOutButton.hidden = true;
   setAuthStatus(message);
   setAuthHint('Enter your email to receive a one-time sign-in code.');
   setSyncStatus('Sign in required', false);
@@ -254,9 +255,15 @@ function applySignedOutState(message = 'Not signed in') {
 function applySignedInState(user) {
   currentUser = user || null;
   syncAuthVisibility();
+  if (authSignOutButton) authSignOutButton.hidden = false;
   setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
   setAuthHint('Your email was verified successfully.');
   setSyncStatus('Synced', true);
+}
+
+function promptForSignIn() {
+  applySignedOutState('Sign in required');
+  authEmailInput?.focus();
 }
 
 function getActionOwnerId(action) {
@@ -300,7 +307,7 @@ function fromSupabaseRow(row) {
 async function syncActionsToServer() {
   if (supabaseClient) {
     if (!currentUser) {
-      setSyncStatus('Sign in required', false);
+      promptForSignIn();
       return;
     }
 
@@ -921,6 +928,11 @@ function cancelComposer() {
 }
 
 function addAction() {
+  if (supabaseClient && !currentUser) {
+    promptForSignIn();
+    return;
+  }
+
   const title = actionInput.value.trim();
   if (!title) {
     actionInput.focus();
@@ -1358,8 +1370,20 @@ function bindUI() {
     }
   });
 
-  composerExpandButton?.addEventListener('click', () => setComposerExpanded(true));
-  actionInput?.addEventListener('focus', () => setComposerExpanded(true));
+  composerExpandButton?.addEventListener('click', () => {
+    if (supabaseClient && !currentUser) {
+      promptForSignIn();
+      return;
+    }
+    setComposerExpanded(true);
+  });
+  actionInput?.addEventListener('focus', () => {
+    if (supabaseClient && !currentUser) {
+      promptForSignIn();
+      return;
+    }
+    setComposerExpanded(true);
+  });
   notesInput?.addEventListener('focus', () => setComposerExpanded(true));
 
   darkModeToggle.addEventListener('click', () => {
