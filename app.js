@@ -41,28 +41,21 @@ const actionList = document.getElementById('actionList');
 const syncButton = document.getElementById('syncButton');
 const installButton = document.getElementById('installButton');
 const syncStatusText = document.getElementById('syncStatusText');
-const todayCount = document.getElementById('todayCount');
-const highPriorityCount = document.getElementById('highPriorityCount');
-const overdueCount = document.getElementById('overdueCount');
-const doneCount = document.getElementById('doneCount');
+  const authStatusText = document.getElementById('authStatusText');
+  const authEmailInput = document.getElementById('authEmailInput');
+  const authSubmitButton = document.getElementById('authSubmitButton');
+  const authSignOutButton = document.getElementById('authSignOutButton');
+  const todayCount = document.getElementById('todayCount');
+  const highPriorityCount = document.getElementById('highPriorityCount');
+  const overdueCount = document.getElementById('overdueCount');
+  const doneCount = document.getElementById('doneCount');
 
-const state = {
-  actions: loadActions(),
-  editingId: null,
-};
+  let currentUser = null;
 
-function formatDateForInput(dateValue) {
-  if (!dateValue) return '';
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
-
-function generateId() {
-  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-    return window.crypto.randomUUID();
-  }
-
+  const state = {
+    actions: loadActions(),
+    editingId: null,
+  };
   if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
     const bytes = new Uint8Array(16);
     window.crypto.getRandomValues(bytes);
@@ -167,9 +160,24 @@ function setSyncStatus(label, isSynced = false) {
   syncStatusText.style.color = isSynced ? '#16a34a' : '#f59e0b';
 }
 
+function setAuthStatus(label) {
+  if (!authStatusText) return;
+  authStatusText.textContent = label;
+}
+
+function getActionOwnerId(action) {
+  return action?.user_id || action?.userId || null;
+}
+
+function isActionOwnedByCurrentUser(action) {
+  if (!currentUser) return false;
+  return getActionOwnerId(action) === currentUser.id;
+}
+
 function toSupabaseRow(action) {
   return {
     id: action.id,
+    user_id: currentUser ? currentUser.id : action.user_id || null,
     title: action.title || '',
     category: action.category || 'work',
     importance: Number(action.importance || 2),
@@ -187,6 +195,7 @@ function toSupabaseRow(action) {
 function fromSupabaseRow(row) {
   return {
     ...row,
+    userId: row.user_id || row.userId || null,
     dueDate: row.due_date || null,
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || row.updatedAt || row.createdAt || new Date().toISOString(),
@@ -196,14 +205,23 @@ function fromSupabaseRow(row) {
 
 async function syncActionsToServer() {
   if (supabaseClient) {
+    if (!currentUser) {
+      setSyncStatus('Sign in required', false);
+      return;
+    }
+
     try {
       setSyncStatus('Syncing...', false);
 
-      const rows = state.actions.map(toSupabaseRow);
+      const rows = state.actions
+        .filter((action) => isActionOwnedByCurrentUser(action) || action.id === null)
+        .map(toSupabaseRow)
+        .filter((row) => row.user_id);
+
       const { error } = await supabaseClient.from('actions').upsert(rows, { onConflict: 'id' });
       if (error) throw error;
 
-      const { data } = await supabaseClient.from('actions').select('*');
+      const { data } = await supabaseClient.from('actions').select('*').eq('user_id', currentUser.id);
       const actions = Array.isArray(data) ? dedupeActions(data.map(fromSupabaseRow)) : [];
       state.actions = actions;
       saveActions();
@@ -249,15 +267,22 @@ async function syncActionsToServer() {
 
 async function pullActionsFromServer({ silent = false } = {}) {
   if (supabaseClient) {
+    if (!currentUser) {
+      state.actions = [];
+      if (!silent) setSyncStatus('Sign in required', false);
+      renderActions();
+      return;
+    }
+
     try {
-      const { data, error } = await supabaseClient.from('actions').select('*');
+      const { data, error } = await supabaseClient.from('actions').select('*').eq('user_id', currentUser.id);
       if (error) {
         if (!silent) setSyncStatus('Offline', false);
         return;
       }
 
       const remoteActions = Array.isArray(data) ? data.map(fromSupabaseRow) : [];
-      const merged = mergeActions(remoteActions, state.actions);
+      const merged = mergeActions(remoteActions, state.actions.filter((action) => isActionOwnedByCurrentUser(action)));
       state.actions = dedupeActions(merged);
       saveActions();
       renderActions();
@@ -418,7 +443,11 @@ function sortActions(actions) {
 }
 
 function getFilteredActions() {
-  const filtered = state.actions.filter((action) => {
+  const visibleActions = supabaseClient && currentUser
+    ? state.actions.filter((action) => isActionOwnedByCurrentUser(action))
+    : state.actions.filter((action) => !supabaseClient || !currentUser ? true : isActionOwnedByCurrentUser(action));
+
+  const filtered = visibleActions.filter((action) => {
     if (isDeleted(action)) return false;
 
     if (currentCategoryFilter !== 'all' && action.category !== currentCategoryFilter) return false;
@@ -473,16 +502,28 @@ function formatActionTimestamp(action) {
 }
 
 function renderSummary() {
-  const today = state.actions.filter((action) => {
+  if (supabaseClient && !currentUser) {
+    todayCount.textContent = '0';
+    highPriorityCount.textContent = '0';
+    overdueCount.textContent = '0';
+    doneCount.textContent = '0';
+    return;
+  }
+
+  const visibleActions = supabaseClient && currentUser
+    ? state.actions.filter((action) => isActionOwnedByCurrentUser(action))
+    : state.actions;
+
+  const today = visibleActions.filter((action) => {
     if (isDeleted(action)) return false;
     const created = new Date(action.createdAt);
     const now = new Date();
     return created.toDateString() === now.toDateString();
-  }).length + state.actions.filter((action) => !isDeleted(action) && isDueToday(action) && !action.completed).length;
+  }).length + visibleActions.filter((action) => !isDeleted(action) && isDueToday(action) && !action.completed).length;
 
-  const highPriority = state.actions.filter((action) => !isDeleted(action) && action.importance >= 3 && action.urgency >= 3 && !action.completed).length;
-  const overdue = state.actions.filter((action) => !isDeleted(action) && isOverdue(action)).length;
-  const done = state.actions.filter((action) => !isDeleted(action) && action.completed).length;
+  const highPriority = visibleActions.filter((action) => !isDeleted(action) && action.importance >= 3 && action.urgency >= 3 && !action.completed).length;
+  const overdue = visibleActions.filter((action) => !isDeleted(action) && isOverdue(action)).length;
+  const done = visibleActions.filter((action) => !isDeleted(action) && action.completed).length;
 
   todayCount.textContent = String(today);
   highPriorityCount.textContent = String(highPriority);
@@ -600,6 +641,12 @@ function renderDoneSection(doneActions) {
 }
 
 function renderActions() {
+  if (supabaseClient && !currentUser) {
+    actionList.innerHTML = '<div class="empty-state">Please sign in to view your actions.</div>';
+    renderSummary();
+    return;
+  }
+
   if (currentView === 'timeline') {
     renderTimeline();
     return;
@@ -776,6 +823,7 @@ function addAction() {
 
   const action = {
     id: generateId(),
+    userId: currentUser ? currentUser.id : null,
     title,
     category: selectedCategory,
     importance: selectedImportance,
@@ -798,7 +846,12 @@ function addAction() {
 function toggleAction(id) {
   state.actions = state.actions.map((action) => {
     if (action.id === id) {
-      return { ...action, completed: !action.completed, updatedAt: new Date().toISOString() };
+      return {
+        ...action,
+        userId: action.userId || (currentUser ? currentUser.id : null),
+        completed: !action.completed,
+        updatedAt: new Date().toISOString(),
+      };
     }
     return action;
   });
@@ -810,7 +863,12 @@ function deleteAction(id) {
   const timestamp = new Date().toISOString();
   state.actions = state.actions.map((action) => {
     if (action.id !== id) return action;
-    return { ...action, deletedAt: timestamp, updatedAt: timestamp };
+    return {
+      ...action,
+      userId: action.userId || (currentUser ? currentUser.id : null),
+      deletedAt: timestamp,
+      updatedAt: timestamp,
+    };
   });
   saveActions();
   renderActions();
@@ -849,6 +907,7 @@ function saveEditAction(id) {
     if (action.id !== id) return action;
     return {
       ...action,
+      userId: action.userId || (currentUser ? currentUser.id : null),
       title,
       notes,
       category,
@@ -1005,7 +1064,85 @@ function setComposerExpanded(isExpanded) {
   }
 }
 
+async function handleAuthSubmit() {
+  if (!supabaseClient || !authEmailInput) return;
+
+  const email = authEmailInput.value.trim();
+  if (!email) {
+    setAuthStatus('Enter your email');
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.signInWithOtp({ email });
+  if (error) {
+    setAuthStatus(error.message || 'Sign-in failed');
+    return;
+  }
+
+  setAuthStatus('Check your email for the login link');
+  authEmailInput.value = '';
+}
+
+async function handleAuthSignOut() {
+  if (!supabaseClient) return;
+
+  const { error } = await supabaseClient.auth.signOut();
+  if (error) {
+    setAuthStatus(error.message || 'Sign out failed');
+    return;
+  }
+
+  currentUser = null;
+  setAuthStatus('Not signed in');
+  setSyncStatus('Sign in required', false);
+  renderActions();
+}
+
+async function initializeAuth() {
+  if (!supabaseClient) {
+    currentUser = null;
+    setAuthStatus('Supabase is not configured');
+    return;
+  }
+
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  if (error) {
+    setAuthStatus(error.message || 'Could not load session');
+    return;
+  }
+
+  currentUser = session?.user || null;
+  if (currentUser) {
+    setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
+  } else {
+    setAuthStatus('Not signed in');
+    setSyncStatus('Sign in required', false);
+  }
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    currentUser = session?.user || null;
+    if (currentUser) {
+      setAuthStatus(`Signed in as ${currentUser.email || 'user'}`);
+      setSyncStatus('Synced', true);
+      pullActionsFromServer({ silent: false });
+    } else {
+      setAuthStatus('Not signed in');
+      setSyncStatus('Sign in required', false);
+      state.actions = [];
+      renderActions();
+    }
+  });
+}
+
 function bindUI() {
+  if (authSubmitButton) {
+    authSubmitButton.addEventListener('click', handleAuthSubmit);
+  }
+
+  if (authSignOutButton) {
+    authSignOutButton.addEventListener('click', handleAuthSignOut);
+  }
+
   window.addEventListener('focus', () => {
     pullActionsFromServer({ silent: true });
   });
@@ -1237,8 +1374,12 @@ async function init() {
 
   setComposerExpanded(false);
 
+  await initializeAuth();
+
   if (syncState.status === 'synced') {
     setSyncStatus('Synced', true);
+  } else if (supabaseClient && !currentUser) {
+    setSyncStatus('Sign in required', false);
   } else {
     setSyncStatus('Offline', false);
   }
@@ -1250,7 +1391,9 @@ async function init() {
   syncUrgencySelection();
   bindUI();
   renderActions();
-  await pullActionsFromServer();
+  if (currentUser) {
+    await pullActionsFromServer();
+  }
 }
 
 init();

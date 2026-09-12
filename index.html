@@ -84,6 +84,20 @@
         </div>
       </section>
 
+      <section class="auth-panel card" aria-label="Authentication panel">
+        <div class="auth-header">
+          <div>
+            <p class="sync-label">Account</p>
+            <strong id="authStatusText">Not signed in</strong>
+          </div>
+        </div>
+        <div class="auth-controls">
+          <input id="authEmailInput" type="email" placeholder="you@example.com" autocomplete="email" />
+          <button id="authSubmitButton" class="sync-button" type="button">Send magic link</button>
+          <button id="authSignOutButton" class="ghost-button secondary-button" type="button">Sign out</button>
+        </div>
+      </section>
+
       <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
         <div class="composer-collapsed-header">
           <div class="quick-add-summary">
