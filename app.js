@@ -134,7 +134,7 @@ function dedupeActions(actions = []) {
     }
   });
 
-  return [...map.values()].filter((action) => !action.deletedAt);
+  return [...map.values()];
 }
 
 function loadActions() {
@@ -204,6 +204,18 @@ function getSyncState() {
 
 function setSyncState(nextState) {
   localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(nextState));
+}
+
+function markActionPending(id) {
+  const syncState = getSyncState();
+  const pendingIds = new Set(syncState.pendingIds || []);
+  pendingIds.add(id);
+  setSyncState({ ...syncState, pendingIds: [...pendingIds], status: 'offline' });
+}
+
+function getPendingActions() {
+  const pendingIds = new Set(getSyncState().pendingIds || []);
+  return state.actions.filter((action) => pendingIds.has(action.id));
 }
 
 function setSyncStatus(label, isSynced = false) {
@@ -319,11 +331,16 @@ async function syncActionsToServer() {
       const { error } = await supabaseClient.from('actions').upsert(rows, { onConflict: 'id' });
       if (error) throw error;
 
-      const { data } = await supabaseClient.from('actions').select('*').eq('user_id', currentUser.id);
+      const { data, error: readError } = await supabaseClient
+        .from('actions')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('updated_at', { ascending: false });
+      if (readError) throw readError;
       const actions = Array.isArray(data) ? dedupeActions(data.map(fromSupabaseRow)) : [];
       state.actions = actions;
       saveActions();
-      setSyncState({ lastSyncedAt: new Date().toISOString(), status: 'synced' });
+      setSyncState({ lastSyncedAt: new Date().toISOString(), status: 'synced', pendingIds: [] });
       setSyncStatus('Synced', true);
       renderActions();
       return;
@@ -366,7 +383,6 @@ async function syncActionsToServer() {
 async function pullActionsFromServer({ silent = false } = {}) {
   if (supabaseClient) {
     if (!currentUser) {
-      state.actions = [];
       if (!silent) setSyncStatus('Sign in required', false);
       renderActions();
       return;
@@ -389,13 +405,21 @@ async function pullActionsFromServer({ silent = false } = {}) {
       }
 
       const remoteActions = Array.isArray(data) ? data.map(fromSupabaseRow) : [];
-      state.actions = dedupeActions(remoteActions);
+      state.actions = mergeActions(remoteActions, getPendingActions());
       saveActions();
       renderActions();
 
       if (!silent) {
-        setSyncState({ lastSyncedAt: new Date().toISOString(), status: 'synced' });
+        setSyncState({
+          ...getSyncState(),
+          lastSyncedAt: new Date().toISOString(),
+          status: 'synced',
+        });
         setSyncStatus('Synced', true);
+      }
+
+      if (getPendingActions().length) {
+        syncActionsToServer();
       }
       return;
     } catch (error) {
@@ -453,7 +477,6 @@ function mergeActions(existing = [], incoming = []) {
   });
 
   return [...map.values()]
-    .filter((action) => !action.deletedAt)
     .sort((a, b) => {
       const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
@@ -756,14 +779,6 @@ function renderDoneSection(doneActions) {
 }
 
 function renderActions() {
-  const hasSignedInUser = Boolean(currentUser);
-
-  if (supabaseClient && !hasSignedInUser && !state.actions.some((action) => action.userId || action.user_id)) {
-    actionList.innerHTML = '<div class="empty-state">Please sign in to view your actions.</div>';
-    renderSummary();
-    return;
-  }
-
   if (currentView === 'timeline') {
     renderTimeline();
     return;
@@ -928,11 +943,6 @@ function cancelComposer() {
 }
 
 function addAction() {
-  if (supabaseClient && !currentUser) {
-    promptForSignIn();
-    return;
-  }
-
   const title = actionInput.value.trim();
   if (!title) {
     actionInput.focus();
@@ -959,6 +969,7 @@ function addAction() {
   };
 
   state.actions.push(action);
+  markActionPending(action.id);
   saveActions();
   resetComposerForm();
   setComposerExpanded(false);
@@ -981,6 +992,7 @@ function toggleAction(id) {
     }
     return action;
   });
+  markActionPending(id);
   saveActions();
   renderActions();
 
@@ -1000,6 +1012,7 @@ function deleteAction(id) {
       updatedAt: timestamp,
     };
   });
+  markActionPending(id);
   saveActions();
   renderActions();
 
@@ -1053,6 +1066,7 @@ function saveEditAction(id) {
     };
   });
 
+  markActionPending(id);
   saveActions();
   state.editingId = null;
   renderActions();
@@ -1196,7 +1210,6 @@ function setComposerExpanded(isExpanded) {
 
   if (shouldExpand) {
     requestAnimationFrame(() => {
-      composerCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       actionInput?.focus();
     });
   }
@@ -1324,7 +1337,6 @@ async function initializeAuth() {
       renderActions();
     } else {
       applySignedOutState('Not signed in');
-      state.actions = [];
       renderActions();
     }
   });
@@ -1343,6 +1355,10 @@ function bindUI() {
     pullActionsFromServer({ silent: true });
   });
 
+  window.addEventListener('online', () => {
+    if (currentUser) syncActionsToServer();
+  });
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       pullActionsFromServer({ silent: true });
@@ -1350,17 +1366,9 @@ function bindUI() {
   });
 
   composerExpandButton?.addEventListener('click', () => {
-    if (supabaseClient && !currentUser) {
-      promptForSignIn();
-      return;
-    }
     setComposerExpanded(true);
   });
   actionInput?.addEventListener('focus', () => {
-    if (supabaseClient && !currentUser) {
-      promptForSignIn();
-      return;
-    }
     setComposerExpanded(true);
   });
   notesInput?.addEventListener('focus', () => setComposerExpanded(true));
