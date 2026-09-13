@@ -667,11 +667,11 @@ function renderSummary() {
     : state.actions;
 
   const today = visibleActions.filter((action) => {
-    if (isDeleted(action)) return false;
+    if (isDeleted(action) || action.completed) return false;
     const created = new Date(action.createdAt);
     const now = new Date();
-    return created.toDateString() === now.toDateString();
-  }).length + visibleActions.filter((action) => !isDeleted(action) && isDueToday(action) && !action.completed).length;
+    return isDueToday(action) || created.toDateString() === now.toDateString();
+  }).length;
 
   const highPriority = visibleActions.filter((action) => !isDeleted(action) && action.importance >= 3 && action.urgency >= 3 && !action.completed).length;
   const overdue = visibleActions.filter((action) => !isDeleted(action) && isOverdue(action)).length;
