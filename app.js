@@ -48,6 +48,8 @@ const composerCard = document.getElementById('composerCard');
 const composerExpandButton = document.getElementById('composerExpandButton');
 const quickAddButton = document.getElementById('quickAddButton');
 const actionList = document.getElementById('actionList');
+const demoNotice = document.getElementById('demoNotice');
+const startCleanButton = document.getElementById('startCleanButton');
 const projectInput = document.getElementById('projectInput');
 const projectFilter = document.getElementById('projectFilter');
 const hashtagFilterInput = document.getElementById('hashtagFilterInput');
@@ -198,6 +200,29 @@ async function refreshSupabaseSession() {
 
 function isDeleted(action) {
   return Boolean(action && action.deletedAt);
+}
+
+function isDemoAction(action) {
+  return Boolean(action && (action.demo === true || String(action.id || '').startsWith('demo-')));
+}
+
+function getDemoActions() {
+  return state.actions.filter((action) => isDemoAction(action) && !isDeleted(action));
+}
+
+function syncDemoNotice() {
+  if (!demoNotice) return;
+  const shouldShow = !currentUser && getDemoActions().length > 0;
+  demoNotice.hidden = !shouldShow;
+}
+
+function startCleanWorkspace() {
+  state.actions = state.actions.filter((action) => !isDemoAction(action));
+  saveActions();
+  syncDemoNotice();
+  renderActions();
+  actionInput?.focus();
+  setComposerExpanded(true);
 }
 
 function getSyncState() {
@@ -954,6 +979,7 @@ function renderDoneSection(doneActions) {
 }
 
 function renderActions() {
+  syncDemoNotice();
   syncProjectFilterOptions();
   syncHashtagFilterOptions();
   if (currentView === 'timeline') {
@@ -987,6 +1013,7 @@ function renderActions() {
         ? `<span class="badge ${isDueToday(action) ? 'due-today' : 'overdue-badge'}">${new Date(action.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`
         : '';
       const projectBadge = action.project ? `<span class="badge project-badge">${escapeHtml(action.project)}</span>` : '';
+      const demoBadge = isDemoAction(action) ? '<span class="badge demo-badge">Demo</span>' : '';
       const hashtagBadges = getActionHashtags(action).map((tag) => `<span class="badge hashtag-badge">#${escapeHtml(tag)}</span>`).join('');
 
       const isEditing = state.editingId === action.id;
@@ -1004,6 +1031,7 @@ function renderActions() {
 
             <div class="action-meta">
               <span class="badge ${action.category}">${categoryLabel}</span>
+              ${demoBadge}
               ${projectBadge}
               ${hashtagBadges}
               <span class="badge importance-${action.importance}">${badgeText('importance', action.importance)}</span>
@@ -1637,6 +1665,7 @@ function bindUI() {
   });
 
   readTopActionsButton?.addEventListener('click', readTopActions);
+  startCleanButton?.addEventListener('click', startCleanWorkspace);
 
   document.querySelectorAll('.sort-tab').forEach((button) => {
     button.addEventListener('click', () => {
