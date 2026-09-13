@@ -551,6 +551,11 @@ function parseSmartDetails(text) {
   return {};
 }
 
+function getMatrixPriority(action) {
+  if (typeof window.inferredMatrixPriority === 'function') return window.inferredMatrixPriority(action);
+  return { importance: Number(action.importance) || 2, urgency: Number(action.urgency) || 2 };
+}
+
 function getActionHashtags(action) {
   return Array.isArray(action.hashtags) ? action.hashtags : extractHashtags(`${action.title || ''} ${action.notes || ''}`);
 }
@@ -582,15 +587,51 @@ function syncHashtagFilterOptions() {
 
 function getActionIcon(title) {
   const normalized = title.toLowerCase();
-  if (/(call|phone|ring|message|text|email|reply|chat)/.test(normalized)) return '📞';
-  if (/(meeting|call|review|sync|plan|brief|presentation|update)/.test(normalized)) return '🗓️';
-  if (/(appoint|doctor|dentist|clinic|visit|book)/.test(normalized)) return '🩺';
-  if (/(buy|shop|grocer|order|pay|invoice|bill)/.test(normalized)) return '🛒';
-  if (/(travel|flight|train|book|trip|airport)/.test(normalized)) return '✈️';
-  if (/(write|draft|report|summary|document|post|email)/.test(normalized)) return '✍️';
-  if (/(family|mum|dad|friend|date|dinner|party)/.test(normalized)) return '💛';
-  if (/(project|build|launch|design|code|fix|debug)/.test(normalized)) return '🚀';
-  return '✨';
+  if (/(call|phone|ring|message|text|email|reply|chat)/.test(normalized)) return iconSvg('phone');
+  if (/(meeting|call|review|sync|plan|brief|presentation|update)/.test(normalized)) return iconSvg('calendar');
+  if (/(appoint|doctor|dentist|clinic|visit|book)/.test(normalized)) return iconSvg('stethoscope');
+  if (/(buy|shop|grocer|order|pay|invoice|bill)/.test(normalized)) return iconSvg('shopping-bag');
+  if (/(travel|flight|train|book|trip|airport)/.test(normalized)) return iconSvg('plane');
+  if (/(write|draft|report|summary|document|post|email)/.test(normalized)) return iconSvg('pen-line');
+  if (/(family|mum|dad|friend|date|dinner|party)/.test(normalized)) return iconSvg('heart');
+  if (/(project|build|launch|design|code|fix|debug)/.test(normalized)) return iconSvg('rocket');
+  return iconSvg('sparkles');
+}
+
+function iconSvg(name, className = '') {
+  const paths = {
+    calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    check: '<path d="m5 12 4 4L19 6"/>',
+    circle: '<circle cx="12" cy="12" r="7"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    heart: '<path d="M20.8 8.7c0 5.2-8.8 10.3-8.8 10.3S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.1a4.7 4.7 0 0 1 8.8 2.6Z"/>',
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"/>',
+    moon: '<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    pen: '<path d="m13 6 5 5M4 20l3.5-.8L19 7.7a2.1 2.1 0 0 0-3-3L4.5 16.2 4 20Z"/>',
+    'pen-line': '<path d="m13 6 5 5M4 20l3.5-.8L19 7.7a2.1 2.1 0 0 0-3-3L4.5 16.2 4 20ZM12 20h8"/>',
+    phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z"/>',
+    plane: '<path d="m3 11 18-8-8 18-2.5-7.5L3 11Z"/><path d="m10.5 13.5 4-4"/>',
+    rocket: '<path d="M14.5 5.5c2.4-2.4 5.1-2.5 5.1-2.5s-.1 2.7-2.5 5.1l-5.5 5.5-3.1-.5-.5-3.1 6.5-4.5Z"/><path d="m9 15-4 4M5 15l-2 2M9 19l-2 2"/>',
+    'shopping-bag': '<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+    sparkles: '<path d="m12 3-1.2 4.8L6 9l4.8 1.2L12 15l1.2-4.8L18 9l-4.8-1.2L12 3ZM19 15l-.6 2.4L16 18l2.4.6L19 21l.6-2.4L22 18l-2.4-.6L19 15Z"/>',
+    stethoscope: '<path d="M6 3v6a4 4 0 0 0 8 0V3M4 3h4M12 3h4M18 13a3 3 0 1 0 3 3v-1"/><path d="M18 19a4 4 0 0 1-8 0v-2"/>',
+    volume: '<path d="M4 10v4h4l5 4V6l-5 4H4ZM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/>',
+    x: '<path d="m6 6 12 12M18 6 6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    zap: '<path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/>',
+  };
+  return `<svg class="ui-icon ${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name] || paths.sparkles}</svg>`;
+}
+
+function setButtonIcon(button, name) {
+  if (button) button.innerHTML = iconSvg(name);
+}
+
+function hydrateStaticIcons() {
+  document.querySelectorAll('[data-icon]').forEach((element) => {
+    element.innerHTML = iconSvg(element.dataset.icon);
+  });
 }
 
 function sortActions(actions) {
@@ -767,7 +808,7 @@ function renderTimeline() {
 
       const cards = group
         .map((action) => {
-          const icon = action.icon || getActionIcon(action.title);
+          const icon = getActionIcon(action.title);
           const escapedTitle = escapeHtml(action.title || 'Untitled action');
           return `
             <div class="timeline-item" data-id="${action.id}">
@@ -803,17 +844,17 @@ function renderTimeline() {
 function renderMatrix() {
   const actions = getFilteredActions().filter((action) => !action.completed);
   const quadrants = [
-    { key: 'do', title: 'Do first', description: 'High importance, high urgency', test: (action) => action.importance >= 3 && action.urgency >= 3 },
-    { key: 'schedule', title: 'Schedule', description: 'High importance, lower urgency', test: (action) => action.importance >= 3 && action.urgency < 3 },
-    { key: 'delegate', title: 'Delegate', description: 'Lower importance, high urgency', test: (action) => action.importance < 3 && action.urgency >= 3 },
-    { key: 'later', title: 'Do later', description: 'Lower importance, lower urgency', test: (action) => action.importance < 3 && action.urgency < 3 },
+    { key: 'do', title: 'Do first', description: 'High importance, high urgency', test: (priority) => priority.importance >= 3 && priority.urgency >= 3 },
+    { key: 'schedule', title: 'Schedule', description: 'High importance, lower urgency', test: (priority) => priority.importance >= 3 && priority.urgency < 3 },
+    { key: 'delegate', title: 'Delegate', description: 'Lower importance, high urgency', test: (priority) => priority.importance < 3 && priority.urgency >= 3 },
+    { key: 'later', title: 'Do later', description: 'Lower importance, lower urgency', test: (priority) => priority.importance < 3 && priority.urgency < 3 },
   ];
 
   actionList.innerHTML = `<div class="matrix-grid">${quadrants.map((quadrant) => {
-    const items = actions.filter(quadrant.test);
+    const items = actions.filter((action) => quadrant.test(getMatrixPriority(action)));
     return `<section class="matrix-quadrant ${quadrant.key}">
       <div class="matrix-heading"><div><strong>${quadrant.title}</strong><span>${quadrant.description}</span></div><b>${items.length}</b></div>
-      <div class="matrix-items">${items.length ? items.map((action) => `<div class="matrix-item"><span>${action.icon || getActionIcon(action.title)}</span><strong>${escapeHtml(action.title)}</strong></div>`).join('') : '<span class="matrix-empty">Nothing here</span>'}</div>
+      <div class="matrix-items">${items.length ? items.map((action) => `<div class="matrix-item"><span>${getActionIcon(action.title)}</span><strong>${escapeHtml(action.title)}</strong></div>`).join('') : '<span class="matrix-empty">Nothing here</span>'}</div>
     </section>`;
   }).join('')}</div>`;
   renderSummary();
@@ -872,7 +913,7 @@ function renderDoneSection(doneActions) {
   const itemsMarkup = visibleDone
     .map((action) => {
       const escapedTitle = escapeHtml(action.title || 'Untitled action');
-      const icon = action.icon || getActionIcon(action.title);
+      const icon = getActionIcon(action.title);
 
       return `
         <article class="action-item completed done-item ${action.category}" data-id="${action.id}">
@@ -888,8 +929,8 @@ function renderDoneSection(doneActions) {
           </div>
 
           <div class="action-controls compact-controls">
-            <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="Undo action" title="Undo action">↺</button>
-            <button class="action-delete" type="button" data-action="delete" data-id="${action.id}" aria-label="Delete action" title="Delete action">🗑</button>
+            <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="Undo action" title="Undo action">${iconSvg('check')}</button>
+            <button class="action-delete" type="button" data-action="delete" data-id="${action.id}" aria-label="Delete action" title="Delete action">${iconSvg('x')}</button>
           </div>
         </article>
       `;
@@ -937,7 +978,7 @@ function renderActions() {
       const categoryLabel = action.category === 'work' ? 'Work' : 'Personal';
       const className = action.completed ? 'action-item completed' : 'action-item';
       const overdueClass = isOverdue(action) ? 'overdue' : '';
-      const icon = action.icon || getActionIcon(action.title);
+      const icon = getActionIcon(action.title);
       const dueDateBadge = action.dueDate
         ? `<span class="badge ${isDueToday(action) ? 'due-today' : 'overdue-badge'}">${new Date(action.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`
         : '';
@@ -1005,7 +1046,7 @@ function renderActions() {
                     </select>
                   </label>
                   <label>
-                    <span>Reminder</span>
+                    <span>Due by</span>
                     <input class="edit-date-input" name="dueDate" type="date" value="${dueDateValue}" />
                   </label>
                   <label>
@@ -1014,17 +1055,17 @@ function renderActions() {
                   </label>
                 </div>
                 <div class="editor-actions">
-                  <button type="submit" class="action-save" data-action="save-edit" data-id="${action.id}">Save</button>
-                  <button type="button" class="action-cancel" data-action="cancel-edit" data-id="${action.id}">Cancel</button>
+                  <button type="submit" class="action-save" data-action="save-edit" data-id="${action.id}" aria-label="Save changes" title="Save changes">✓</button>
+                  <button type="button" class="action-cancel" data-action="cancel-edit" data-id="${action.id}" aria-label="Cancel editing" title="Cancel editing">×</button>
                 </div>
               </form>
             ` : ''}
           </div>
 
           <div class="action-controls">
-            <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="${action.completed ? 'Undo action' : 'Mark action done'}" title="${action.completed ? 'Undo action' : 'Mark action done'}">${action.completed ? '↺' : '✓'}</button>
-            <button class="action-edit" type="button" data-action="edit" data-id="${action.id}" aria-label="Edit action" title="Edit action">✎</button>
-            <button class="action-delete" type="button" data-action="delete" data-id="${action.id}" aria-label="Delete action" title="Delete action">🗑</button>
+            <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="${action.completed ? 'Undo action' : 'Mark action done'}" title="${action.completed ? 'Undo action' : 'Mark action done'}">${iconSvg('check')}</button>
+            <button class="action-edit" type="button" data-action="edit" data-id="${action.id}" aria-label="Edit action" title="Edit action">${iconSvg('pen')}</button>
+            <button class="action-delete" type="button" data-action="delete" data-id="${action.id}" aria-label="Delete action" title="Delete action">${iconSvg('x')}</button>
           </div>
         </article>
       `;
@@ -1531,7 +1572,7 @@ function bindUI() {
   darkModeToggle.addEventListener('click', () => {
     const isDark = document.body.classList.toggle('dark-mode');
     localStorage.setItem('pulse-notes-theme', isDark ? 'dark' : 'light');
-    darkModeToggle.innerHTML = `<span>${isDark ? '☀️' : '🌙'}</span>`;
+    setButtonIcon(darkModeToggle, isDark ? 'sun' : 'moon');
   });
 
   document.querySelectorAll('.category-pill').forEach((button) => {
@@ -1700,28 +1741,49 @@ function startVoiceCapture() {
 
   const recognition = new SpeechRecognition();
   recognition.lang = 'en-US';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+
+  const existing = actionInput.value.trim();
+  let finalTranscript = '';
+
+  const cleanVoiceTranscript = (value) => {
+    const cleaned = value.replace(/\s+/g, ' ').trim();
+    if (!cleaned) return '';
+    return `${cleaned.charAt(0).toUpperCase()}${cleaned.slice(1).replace(/[.!?]+$/, '')}.`;
+  };
 
   recognition.start();
   voiceButton.classList.add('listening');
-  voiceButton.innerHTML = '<span>🎙</span>';
+  setButtonIcon(voiceButton, 'mic');
 
   recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    const existing = actionInput.value.trim();
-    actionInput.value = existing ? `${existing} ${transcript}` : transcript;
+    let interimTranscript = '';
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      const transcript = result[0].transcript;
+      if (result.isFinal) {
+        finalTranscript += ` ${transcript}`;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+
+    const cleanedFinal = cleanVoiceTranscript(finalTranscript);
+    const preview = [existing, cleanedFinal, interimTranscript.trim()].filter(Boolean).join(' ');
+    actionInput.value = preview;
     actionInput.focus();
   };
 
   recognition.onend = () => {
     voiceButton.classList.remove('listening');
-    voiceButton.innerHTML = '<span>🎙</span>';
+    setButtonIcon(voiceButton, 'mic');
   };
 
   recognition.onerror = () => {
     voiceButton.classList.remove('listening');
-    voiceButton.innerHTML = '<span>🎙</span>';
+    setButtonIcon(voiceButton, 'mic');
   };
 }
 
@@ -1750,9 +1812,9 @@ async function init() {
 
   if (shouldUseDark) {
     document.body.classList.add('dark-mode');
-    darkModeToggle.innerHTML = '<span>☀️</span>';
+    setButtonIcon(darkModeToggle, 'sun');
   } else {
-    darkModeToggle.innerHTML = '<span>🌙</span>';
+    setButtonIcon(darkModeToggle, 'moon');
   }
 
   setComposerExpanded(false);
@@ -1772,6 +1834,7 @@ async function init() {
   syncSummaryFilterSelection();
   syncImportanceSelection();
   syncUrgencySelection();
+  hydrateStaticIcons();
   bindUI();
   renderActions();
   if (currentUser) {

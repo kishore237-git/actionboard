@@ -63,6 +63,27 @@ function parseSmartDetails(text = '', referenceDate = new Date()) {
   return details;
 }
 
+function inferredMatrixPriority(action) {
+  const text = `${action.title || ''} ${action.notes || ''}`.toLowerCase();
+  const explicitImportance = Number(action.importance) || 2;
+  const explicitUrgency = Number(action.urgency) || 2;
+  const dueTime = action.dueDate ? new Date(action.dueDate).getTime() : NaN;
+  const todayStart = startOfDay(new Date()).getTime();
+  const tomorrowStart = todayStart + 24 * 60 * 60 * 1000;
+  const hasImmediateDeadline = /\b(asap|urgent|immediately|critical|deadline|due today|today|overdue)\b/.test(text);
+  const hasHighImpact = /\b(launch|release|outage|incident|client|customer|invoice|payment|tax|interview|presentation|proposal|must|important)\b/.test(text);
+  const hasLowImpact = /\b(optional|someday|when possible|no rush|nice to have)\b/.test(text);
+
+  return {
+    importance: explicitImportance !== 2
+      ? explicitImportance
+      : hasLowImpact ? 1 : hasHighImpact ? 3 : 2,
+    urgency: explicitUrgency !== 2
+      ? explicitUrgency
+      : (hasImmediateDeadline || (!Number.isNaN(dueTime) && dueTime < tomorrowStart)) ? 3 : 2,
+  };
+}
+
 function buildDemoActions() {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
@@ -187,6 +208,7 @@ if (typeof module !== 'undefined') {
     isDueToday,
     extractHashtags,
     parseSmartDetails,
+    inferredMatrixPriority,
     buildDemoActions,
     sortActions,
   };

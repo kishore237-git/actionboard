@@ -273,11 +273,11 @@ h1 {
 
 .icon-button,
 .mic-button {
-  width: 54px;
-  height: 54px;
+  width: 46px;
+  height: 46px;
   border: 0;
   border-radius: 18px;
-  font-size: 1.4rem;
+  font-size: 1rem;
   box-shadow: 0 16px 28px rgba(91, 120, 255, 0.18);
 }
 
@@ -476,8 +476,37 @@ body.dark-mode .install-button {
   height: 32px;
   border-radius: 10px;
   background: rgba(91, 120, 255, 0.12);
-  font-size: 1rem;
   flex-shrink: 0;
+}
+
+.ui-icon,
+[data-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.summary-icon .ui-icon,
+.priority-icon .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-button .ui-icon,
+.mic-button .ui-icon,
+.composer-icon-button .ui-icon {
+  width: 19px;
+  height: 19px;
 }
 
 .summary-copy {
@@ -614,7 +643,8 @@ body.dark-mode .install-button {
   background: rgba(91, 120, 255, 0.08);
   color: var(--text);
   font-weight: 700;
-  padding: 10px 12px;
+  padding: 7px 9px;
+  font-size: 0.72rem;
 }
 
 .category-pill.active,
@@ -738,7 +768,6 @@ textarea {
   justify-content: center;
   width: 100%;
   height: 100%;
-  font-size: 1.1rem;
   line-height: 1;
 }
 
@@ -865,12 +894,13 @@ body.dark-mode .context-select {
 
 .context-pill {
   flex: 1 1 0;
-  min-height: 38px;
-  padding: 8px 10px;
+  min-height: 32px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: rgba(148, 163, 184, 0.06);
   color: var(--text);
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -996,6 +1026,13 @@ body.dark-mode .context-select {
   background: linear-gradient(135deg, rgba(91, 120, 255, 0.18), rgba(16, 185, 129, 0.12));
   font-size: 1rem;
   flex-shrink: 0;
+}
+
+.timeline-item .mini-icon .ui-icon,
+.matrix-item .ui-icon,
+.action-item .icon-wrap .ui-icon {
+  width: 17px;
+  height: 17px;
 }
 
 .timeline-item .mini-content {
@@ -1447,10 +1484,16 @@ body.dark-mode .card-timestamp {
 .action-toggle,
 .action-edit,
 .action-delete {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   align-self: flex-end;
+}
+
+.action-controls .ui-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
 }
 
 .action-toggle {
@@ -1516,11 +1559,19 @@ body.dark-mode .card-timestamp {
 }
 
 .action-save {
+  width: 32px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   color: white;
 }
 
 .action-cancel {
+  width: 32px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
   background: rgba(148, 163, 184, 0.14);
   color: var(--text);
 }

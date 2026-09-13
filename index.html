@@ -13,7 +13,7 @@
     <title>Pulse Notes</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20260913.4" />
+    <link rel="stylesheet" href="styles.css?v=20260913.5" />
   </head>
   <body>
     <div class="app-shell">
@@ -28,38 +28,38 @@
             <span id="connectionLabel">Offline</span>
           </span>
           <button id="darkModeToggle" class="icon-button" aria-label="Toggle dark mode">
-            <span>🌙</span>
+            <span data-icon="moon"></span>
           </button>
           <button id="voiceButton" class="mic-button" aria-label="Use voice input">
-            <span>🎙</span>
+            <span data-icon="mic"></span>
           </button>
         </div>
       </header>
 
       <section class="summary-panel" aria-label="Action summary">
         <button type="button" class="summary-item filter-item" data-filter="today" aria-pressed="false">
-          <div class="summary-icon" aria-hidden="true">📅</div>
+            <div class="summary-icon" aria-hidden="true"><span data-icon="calendar"></span></div>
           <div class="summary-copy">
             <span class="label">Today</span>
             <strong id="todayCount">0</strong>
           </div>
         </button>
         <button type="button" class="summary-item filter-item" data-filter="high" aria-pressed="false">
-          <div class="summary-icon" aria-hidden="true">⚡</div>
+            <div class="summary-icon" aria-hidden="true"><span data-icon="zap"></span></div>
           <div class="summary-copy">
             <span class="label">High</span>
             <strong id="highPriorityCount">0</strong>
           </div>
         </button>
         <button type="button" class="summary-item filter-item" data-filter="late" aria-pressed="false">
-          <div class="summary-icon" aria-hidden="true">⏰</div>
+            <div class="summary-icon" aria-hidden="true"><span data-icon="clock"></span></div>
           <div class="summary-copy">
             <span class="label">Late</span>
             <strong id="overdueCount">0</strong>
           </div>
         </button>
         <button type="button" class="summary-item filter-item" data-filter="done" aria-pressed="false">
-          <div class="summary-icon" aria-hidden="true">✓</div>
+            <div class="summary-icon" aria-hidden="true"><span data-icon="check"></span></div>
           <div class="summary-copy">
             <span class="label">Done</span>
             <strong id="doneCount">0</strong>
@@ -118,12 +118,12 @@
       <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
         <div class="composer-collapsed-header">
           <button id="quickAddButton" class="quick-add-summary quick-add-button" type="button" title="Add a new action">
-            <span class="quick-add-icon">＋</span>
+            <span class="quick-add-icon"><span data-icon="plus"></span></span>
             <span>Quick add</span>
           </button>
           <div class="composer-header-actions">
-            <button id="cancelActionButton" class="icon-button composer-icon-button" type="button" aria-label="Cancel action" title="Cancel">×</button>
-            <button id="addActionButton" class="icon-button composer-icon-button add-icon-button" type="button" aria-label="Add action" title="Add action">✓</button>
+            <button id="cancelActionButton" class="icon-button composer-icon-button" type="button" aria-label="Cancel action" title="Cancel"><span data-icon="x"></span></button>
+            <button id="addActionButton" class="icon-button composer-icon-button add-icon-button" type="button" aria-label="Add action" title="Add action"><span data-icon="check"></span></button>
           </div>
         </div>
 
@@ -137,7 +137,7 @@
           <textarea id="actionInput" rows="2" placeholder="Capture the next action..." autocomplete="off"></textarea>
 
           <div class="date-row">
-            <label class="date-label" for="dueDateInput">Reminder</label>
+            <label class="date-label" for="dueDateInput">Due by</label>
             <input id="dueDateInput" type="date" />
           </div>
 
@@ -149,17 +149,17 @@
           <div class="priority-row">
             <div class="priority-block importance-panel" aria-label="Importance selector">
               <div class="segmented premium-segmented" id="importanceGroup">
-                <button type="button" class="segmented-button" data-importance="1" aria-label="Low importance" title="Low importance"><span class="priority-icon">↧</span></button>
-                <button type="button" class="segmented-button active" data-importance="2" aria-label="Medium importance" title="Medium importance"><span class="priority-icon">◉</span></button>
-                <button type="button" class="segmented-button" data-importance="3" aria-label="High importance" title="High importance"><span class="priority-icon">✦</span></button>
+                <button type="button" class="segmented-button" data-importance="1" aria-label="Low importance" title="Low importance"><span class="priority-icon" data-icon="clock"></span></button>
+                <button type="button" class="segmented-button active" data-importance="2" aria-label="Medium importance" title="Medium importance"><span class="priority-icon" data-icon="circle"></span></button>
+                <button type="button" class="segmented-button" data-importance="3" aria-label="High importance" title="High importance"><span class="priority-icon" data-icon="zap"></span></button>
               </div>
             </div>
 
             <div class="priority-block urgency-panel" aria-label="Urgency selector">
               <div class="segmented premium-segmented" id="urgencyGroup">
-                <button type="button" class="segmented-button" data-urgency="1" aria-label="Low urgency" title="Low urgency"><span class="priority-icon">⏳</span></button>
-                <button type="button" class="segmented-button active" data-urgency="2" aria-label="Medium urgency" title="Medium urgency"><span class="priority-icon">⏱</span></button>
-                <button type="button" class="segmented-button" data-urgency="3" aria-label="High urgency" title="High urgency"><span class="priority-icon">⚡</span></button>
+                <button type="button" class="segmented-button" data-urgency="1" aria-label="Low urgency" title="Low urgency"><span class="priority-icon" data-icon="clock"></span></button>
+                <button type="button" class="segmented-button active" data-urgency="2" aria-label="Medium urgency" title="Medium urgency"><span class="priority-icon" data-icon="clock"></span></button>
+                <button type="button" class="segmented-button" data-urgency="3" aria-label="High urgency" title="High urgency"><span class="priority-icon" data-icon="zap"></span></button>
               </div>
             </div>
           </div>
@@ -176,7 +176,7 @@
             <button class="view-tab" data-view="timeline" type="button">Timeline</button>
             <button class="view-tab" data-view="matrix" type="button">Matrix</button>
           </div>
-          <button id="readTopActionsButton" class="icon-button read-aloud-button" type="button" aria-label="Read top actions aloud" title="Read top actions aloud">🔊</button>
+          <button id="readTopActionsButton" class="icon-button read-aloud-button" type="button" aria-label="Read top actions aloud" title="Read top actions aloud"><span data-icon="volume"></span></button>
         </div>
       </section>
 
@@ -199,7 +199,7 @@
       window.SUPABASE_URL = 'https://stalwkqpwjivqrejlsig.supabase.co';
       window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
     </script>
-    <script src="sort-logic.js?v=20260913.4"></script>
-    <script src="app.js?v=20260913.4"></script>
+    <script src="sort-logic.js?v=20260913.5"></script>
+    <script src="app.js?v=20260913.5"></script>
   </body>
 </html>
