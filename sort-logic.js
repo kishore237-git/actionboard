@@ -18,6 +18,51 @@ function isDueToday(action) {
   return new Date(action.dueDate).toDateString() === new Date().toDateString();
 }
 
+function extractHashtags(text = '') {
+  return [...new Set(
+    String(text)
+      .match(/(^|\s)#([a-z0-9][a-z0-9_-]*)/gi)?.map((match) => match.trim().slice(1).toLowerCase()) || [],
+  )];
+}
+
+function startOfDay(date) {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function parseSmartDetails(text = '', referenceDate = new Date()) {
+  const normalized = String(text).toLowerCase();
+  const details = {};
+  const highUrgency = /\b(urgent|asap|immediately|critical|high priority|deadline|due today)\b/.test(normalized);
+  const lowUrgency = /\b(when possible|someday|low priority|no rush)\b/.test(normalized);
+
+  if (highUrgency) {
+    details.urgency = 3;
+  } else if (lowUrgency) {
+    details.urgency = 1;
+  }
+
+  if (/\b(important|critical|high priority|must do)\b/.test(normalized)) {
+    details.importance = 3;
+  } else if (/\b(optional|nice to have|low priority)\b/.test(normalized)) {
+    details.importance = 1;
+  }
+
+  const dueDate = startOfDay(referenceDate);
+  if (/\btomorrow\b/.test(normalized)) {
+    dueDate.setDate(dueDate.getDate() + 1);
+    details.dueDate = dueDate.toISOString();
+  } else if (/\btoday\b/.test(normalized)) {
+    details.dueDate = dueDate.toISOString();
+  } else if (/\bnext week\b/.test(normalized)) {
+    dueDate.setDate(dueDate.getDate() + 7);
+    details.dueDate = dueDate.toISOString();
+  }
+
+  return details;
+}
+
 function buildDemoActions() {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
@@ -140,6 +185,8 @@ if (typeof module !== 'undefined') {
     priorityScore,
     isOverdue,
     isDueToday,
+    extractHashtags,
+    parseSmartDetails,
     buildDemoActions,
     sortActions,
   };

@@ -13,7 +13,7 @@
     <title>Pulse Notes</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20260913.3" />
+    <link rel="stylesheet" href="styles.css?v=20260913.4" />
   </head>
   <body>
     <div class="app-shell">
@@ -73,6 +73,14 @@
           <button type="button" class="context-pill" data-category-filter="work">Work</button>
           <button type="button" class="context-pill" data-category-filter="personal">Personal</button>
         </div>
+        <div class="context-tools">
+          <label class="sr-only" for="projectFilter">Filter by project</label>
+          <select id="projectFilter" class="context-select">
+            <option value="all">All projects</option>
+          </select>
+          <label class="sr-only" for="hashtagFilterInput">Filter by hashtag</label>
+          <input id="hashtagFilterInput" class="context-input" type="search" placeholder="#filter" autocomplete="off" />
+        </div>
       </section>
 
       <section class="sync-panel card">
@@ -109,11 +117,14 @@
 
       <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
         <div class="composer-collapsed-header">
-          <div class="quick-add-summary">
+          <button id="quickAddButton" class="quick-add-summary quick-add-button" type="button" title="Add a new action">
             <span class="quick-add-icon">＋</span>
             <span>Quick add</span>
+          </button>
+          <div class="composer-header-actions">
+            <button id="cancelActionButton" class="icon-button composer-icon-button" type="button" aria-label="Cancel action" title="Cancel">×</button>
+            <button id="addActionButton" class="icon-button composer-icon-button add-icon-button" type="button" aria-label="Add action" title="Add action">✓</button>
           </div>
-          <button id="composerExpandButton" class="primary-button composer-expand-button" type="button">New action</button>
         </div>
 
         <div class="composer-body">
@@ -126,13 +137,13 @@
           <textarea id="actionInput" rows="2" placeholder="Capture the next action..." autocomplete="off"></textarea>
 
           <div class="date-row">
-            <label class="date-label" for="notesInput">Notes</label>
-            <textarea id="notesInput" rows="2" placeholder="Add any extra detail or context..." autocomplete="off"></textarea>
+            <label class="date-label" for="dueDateInput">Reminder</label>
+            <input id="dueDateInput" type="date" />
           </div>
 
           <div class="date-row">
-            <label class="date-label" for="dueDateInput">Reminder</label>
-            <input id="dueDateInput" type="date" />
+            <label class="date-label" for="projectInput">Project</label>
+            <input id="projectInput" class="text-input" type="text" placeholder="Optional project" autocomplete="off" />
           </div>
 
           <div class="priority-row">
@@ -153,11 +164,6 @@
             </div>
           </div>
 
-          <div class="action-actions">
-            <button id="cancelActionButton" class="ghost-button secondary-button" type="button">Cancel</button>
-            <button id="addActionButton" class="primary-button" type="button">Add action</button>
-          </div>
-
           <div class="gesture-hint">Swipe left = done, swipe right = delete</div>
         </div>
       </section>
@@ -168,7 +174,9 @@
           <div class="view-switcher" aria-label="View selector">
             <button class="view-tab active" data-view="list" type="button">List</button>
             <button class="view-tab" data-view="timeline" type="button">Timeline</button>
+            <button class="view-tab" data-view="matrix" type="button">Matrix</button>
           </div>
+          <button id="readTopActionsButton" class="icon-button read-aloud-button" type="button" aria-label="Read top actions aloud" title="Read top actions aloud">🔊</button>
         </div>
       </section>
 
@@ -191,7 +199,7 @@
       window.SUPABASE_URL = 'https://stalwkqpwjivqrejlsig.supabase.co';
       window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
     </script>
-    <script src="sort-logic.js?v=20260913.3"></script>
-    <script src="app.js?v=20260913.3"></script>
+    <script src="sort-logic.js?v=20260913.4"></script>
+    <script src="app.js?v=20260913.4"></script>
   </body>
 </html>

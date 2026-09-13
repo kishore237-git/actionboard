@@ -34,10 +34,11 @@ if (window.__pulseNotesAppBootstrapped) {
   let currentCategoryFilter = 'all';
   let currentSort = 'priority';
   let currentView = 'list';
+  let currentProjectFilter = 'all';
+  let currentHashtagFilter = '';
   let isDoneSectionExpanded = false;
 
 const actionInput = document.getElementById('actionInput');
-const notesInput = document.getElementById('notesInput');
 const dueDateInput = document.getElementById('dueDateInput');
 const addActionButton = document.getElementById('addActionButton');
 const cancelActionButton = document.getElementById('cancelActionButton');
@@ -45,7 +46,12 @@ const voiceButton = document.getElementById('voiceButton');
 const darkModeToggle = document.getElementById('darkModeToggle');
 const composerCard = document.getElementById('composerCard');
 const composerExpandButton = document.getElementById('composerExpandButton');
+const quickAddButton = document.getElementById('quickAddButton');
 const actionList = document.getElementById('actionList');
+const projectInput = document.getElementById('projectInput');
+const projectFilter = document.getElementById('projectFilter');
+const hashtagFilterInput = document.getElementById('hashtagFilterInput');
+const readTopActionsButton = document.getElementById('readTopActionsButton');
 const syncButton = document.getElementById('syncButton');
 const installButton = document.getElementById('installButton');
 const syncStatusText = document.getElementById('syncStatusText');
@@ -293,6 +299,8 @@ function toSupabaseRow(action) {
     importance: Number(action.importance || 2),
     urgency: Number(action.urgency || 2),
     notes: action.notes || '',
+    project: action.project || '',
+    hashtags: action.hashtags || [],
     due_date: action.dueDate || null,
     created_at: action.createdAt || new Date().toISOString(),
     updated_at: action.updatedAt || action.createdAt || new Date().toISOString(),
@@ -306,6 +314,8 @@ function fromSupabaseRow(row) {
   return {
     ...row,
     userId: row.user_id || row.userId || null,
+    project: row.project || '',
+    hashtags: Array.isArray(row.hashtags) ? row.hashtags : [],
     dueDate: row.due_date || null,
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || row.updatedAt || row.createdAt || new Date().toISOString(),
@@ -531,6 +541,45 @@ function isDueToday(action) {
   return due.toDateString() === today.toDateString();
 }
 
+function extractHashtags(text) {
+  if (typeof window.extractHashtags === 'function') return window.extractHashtags(text);
+  return [];
+}
+
+function parseSmartDetails(text) {
+  if (typeof window.parseSmartDetails === 'function') return window.parseSmartDetails(text);
+  return {};
+}
+
+function getActionHashtags(action) {
+  return Array.isArray(action.hashtags) ? action.hashtags : extractHashtags(`${action.title || ''} ${action.notes || ''}`);
+}
+
+function getProjectNames() {
+  return [...new Set(state.actions.filter((action) => !isDeleted(action) && action.project).map((action) => action.project.trim()))]
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function syncProjectFilterOptions() {
+  if (!projectFilter) return;
+  const options = ['<option value="all">All projects</option>', ...getProjectNames().map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`)].join('');
+  projectFilter.innerHTML = options;
+  projectFilter.value = getProjectNames().includes(currentProjectFilter) ? currentProjectFilter : 'all';
+}
+
+function syncHashtagFilterOptions() {
+  if (!hashtagFilterInput) return;
+  const hashtags = [...new Set(state.actions.flatMap(getActionHashtags))].sort();
+  hashtagFilterInput.setAttribute('list', 'hashtagOptions');
+  let datalist = document.getElementById('hashtagOptions');
+  if (!datalist) {
+    datalist = document.createElement('datalist');
+    datalist.id = 'hashtagOptions';
+    document.body.appendChild(datalist);
+  }
+  datalist.innerHTML = hashtags.map((tag) => `<option value="#${escapeHtml(tag)}"></option>`).join('');
+}
+
 function getActionIcon(title) {
   const normalized = title.toLowerCase();
   if (/(call|phone|ring|message|text|email|reply|chat)/.test(normalized)) return '📞';
@@ -594,6 +643,8 @@ function getFilteredActions() {
     if (isDeleted(action)) return false;
 
     if (currentCategoryFilter !== 'all' && action.category !== currentCategoryFilter) return false;
+    if (currentProjectFilter !== 'all' && action.project !== currentProjectFilter) return false;
+    if (currentHashtagFilter && !getActionHashtags(action).includes(currentHashtagFilter.replace(/^#/, '').toLowerCase())) return false;
 
     if (currentFilter === 'all') return true;
     if (currentFilter === 'done') return action.completed;
@@ -749,6 +800,71 @@ function renderTimeline() {
   renderSummary();
 }
 
+function renderMatrix() {
+  const actions = getFilteredActions().filter((action) => !action.completed);
+  const quadrants = [
+    { key: 'do', title: 'Do first', description: 'High importance, high urgency', test: (action) => action.importance >= 3 && action.urgency >= 3 },
+    { key: 'schedule', title: 'Schedule', description: 'High importance, lower urgency', test: (action) => action.importance >= 3 && action.urgency < 3 },
+    { key: 'delegate', title: 'Delegate', description: 'Lower importance, high urgency', test: (action) => action.importance < 3 && action.urgency >= 3 },
+    { key: 'later', title: 'Do later', description: 'Lower importance, lower urgency', test: (action) => action.importance < 3 && action.urgency < 3 },
+  ];
+
+  actionList.innerHTML = `<div class="matrix-grid">${quadrants.map((quadrant) => {
+    const items = actions.filter(quadrant.test);
+    return `<section class="matrix-quadrant ${quadrant.key}">
+      <div class="matrix-heading"><div><strong>${quadrant.title}</strong><span>${quadrant.description}</span></div><b>${items.length}</b></div>
+      <div class="matrix-items">${items.length ? items.map((action) => `<div class="matrix-item"><span>${action.icon || getActionIcon(action.title)}</span><strong>${escapeHtml(action.title)}</strong></div>`).join('') : '<span class="matrix-empty">Nothing here</span>'}</div>
+    </section>`;
+  }).join('')}</div>`;
+  renderSummary();
+}
+
+function getNaturalSpeechVoice() {
+  if (!('speechSynthesis' in window)) return null;
+
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = [
+    /Samantha/i,
+    /Ava/i,
+    /Karen/i,
+    /Daniel/i,
+    /Alex/i,
+    /Google UK English Female/i,
+    /Microsoft .* Online.*Natural/i,
+  ];
+
+  return preferred.reduce((match, pattern) => match || voices.find((voice) => pattern.test(voice.name) && /^en(-|_)/i.test(voice.lang)), null)
+    || voices.find((voice) => /^en(-|_)(US|GB|AU)/i.test(voice.lang))
+    || voices.find((voice) => /^en/i.test(voice.lang))
+    || null;
+}
+
+function readTopActions() {
+  const actions = getFilteredActions().filter((action) => !action.completed).slice(0, 3);
+  if (!actions.length) return;
+  if (!('speechSynthesis' in window)) {
+    alert('Read aloud is not supported in this browser.');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const voice = getNaturalSpeechVoice();
+  const utterances = [new SpeechSynthesisUtterance('Here are your top actions.')];
+
+  actions.forEach((action, index) => {
+    const projectText = action.project ? ` This is part of the ${action.project} project.` : '';
+    utterances.push(new SpeechSynthesisUtterance(`${index + 1}. ${action.title}.${projectText}`));
+  });
+
+  utterances.forEach((utterance, index) => {
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang || 'en-US';
+    utterance.rate = index === 0 ? 0.9 : 0.86;
+    utterance.pitch = 1.02;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 function renderDoneSection(doneActions) {
   if (!doneActions.length) return '';
 
@@ -793,8 +909,14 @@ function renderDoneSection(doneActions) {
 }
 
 function renderActions() {
+  syncProjectFilterOptions();
+  syncHashtagFilterOptions();
   if (currentView === 'timeline') {
     renderTimeline();
+    return;
+  }
+  if (currentView === 'matrix') {
+    renderMatrix();
     return;
   }
 
@@ -819,6 +941,8 @@ function renderActions() {
       const dueDateBadge = action.dueDate
         ? `<span class="badge ${isDueToday(action) ? 'due-today' : 'overdue-badge'}">${new Date(action.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`
         : '';
+      const projectBadge = action.project ? `<span class="badge project-badge">${escapeHtml(action.project)}</span>` : '';
+      const hashtagBadges = getActionHashtags(action).map((tag) => `<span class="badge hashtag-badge">#${escapeHtml(tag)}</span>`).join('');
 
       const isEditing = state.editingId === action.id;
       const dueDateValue = formatDateForInput(action.dueDate);
@@ -835,6 +959,8 @@ function renderActions() {
 
             <div class="action-meta">
               <span class="badge ${action.category}">${categoryLabel}</span>
+              ${projectBadge}
+              ${hashtagBadges}
               <span class="badge importance-${action.importance}">${badgeText('importance', action.importance)}</span>
               <span class="badge urgency-${action.urgency}">${badgeText('urgency', action.urgency)}</span>
               ${dueDateBadge}
@@ -881,6 +1007,10 @@ function renderActions() {
                   <label>
                     <span>Reminder</span>
                     <input class="edit-date-input" name="dueDate" type="date" value="${dueDateValue}" />
+                  </label>
+                  <label>
+                    <span>Project</span>
+                    <input class="edit-project-input" name="project" type="text" value="${escapeHtml(action.project || '')}" placeholder="Optional project" />
                   </label>
                 </div>
                 <div class="editor-actions">
@@ -941,7 +1071,7 @@ function syncUrgencySelection() {
 
 function resetComposerForm() {
   actionInput.value = '';
-  if (notesInput) notesInput.value = '';
+  if (projectInput) projectInput.value = '';
   dueDateInput.value = '';
   selectedCategory = 'work';
   selectedImportance = 2;
@@ -959,12 +1089,16 @@ function cancelComposer() {
 function addAction() {
   const title = actionInput.value.trim();
   if (!title) {
+    setComposerExpanded(true);
     actionInput.focus();
     return;
   }
 
-  const notes = notesInput ? notesInput.value.trim() : '';
-  const dueDateValue = dueDateInput.value ? new Date(`${dueDateInput.value}T00:00:00`) : null;
+  const notes = '';
+  const smartDetails = parseSmartDetails(`${title} ${notes}`);
+  const dueDateValue = dueDateInput.value
+    ? new Date(`${dueDateInput.value}T00:00:00`)
+    : smartDetails.dueDate ? new Date(smartDetails.dueDate) : null;
   const now = new Date().toISOString();
 
   const action = {
@@ -972,9 +1106,11 @@ function addAction() {
     userId: currentUser ? currentUser.id : null,
     title,
     category: selectedCategory,
-    importance: selectedImportance,
-    urgency: selectedUrgency,
+    importance: smartDetails.importance || selectedImportance,
+    urgency: smartDetails.urgency || selectedUrgency,
     notes,
+    project: projectInput ? projectInput.value.trim() : '',
+    hashtags: extractHashtags(`${title} ${notes}`),
     dueDate: dueDateValue ? dueDateValue.toISOString() : null,
     createdAt: now,
     updatedAt: now,
@@ -1063,6 +1199,7 @@ function saveEditAction(id) {
   const importance = Number(form.querySelector('[name="importance"]').value || 2);
   const urgency = Number(form.querySelector('[name="urgency"]').value || 2);
   const dueDate = form.querySelector('[name="dueDate"]').value || null;
+  const project = form.querySelector('[name="project"]').value.trim();
 
   state.actions = state.actions.map((action) => {
     if (action.id !== id) return action;
@@ -1074,6 +1211,8 @@ function saveEditAction(id) {
       category,
       importance,
       urgency,
+      project,
+      hashtags: extractHashtags(`${title} ${notes}`),
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00`).toISOString() : null,
       updatedAt: new Date().toISOString(),
       icon: action.icon || getActionIcon(title),
@@ -1382,10 +1521,12 @@ function bindUI() {
   composerExpandButton?.addEventListener('click', () => {
     setComposerExpanded(true);
   });
+  quickAddButton?.addEventListener('click', () => {
+    setComposerExpanded(true);
+  });
   actionInput?.addEventListener('focus', () => {
     setComposerExpanded(true);
   });
-  notesInput?.addEventListener('focus', () => setComposerExpanded(true));
 
   darkModeToggle.addEventListener('click', () => {
     const isDark = document.body.classList.toggle('dark-mode');
@@ -1430,6 +1571,16 @@ function bindUI() {
     });
   });
 
+  projectFilter?.addEventListener('change', () => {
+    currentProjectFilter = projectFilter.value;
+    renderActions();
+  });
+
+  hashtagFilterInput?.addEventListener('input', () => {
+    currentHashtagFilter = hashtagFilterInput.value.trim();
+    renderActions();
+  });
+
   document.querySelectorAll('.view-tab').forEach((button) => {
     button.addEventListener('click', () => {
       currentView = button.dataset.view;
@@ -1439,6 +1590,8 @@ function bindUI() {
       renderActions();
     });
   });
+
+  readTopActionsButton?.addEventListener('click', readTopActions);
 
   document.querySelectorAll('.sort-tab').forEach((button) => {
     button.addEventListener('click', () => {
