@@ -21,7 +21,7 @@ if (window.__pulseNotesAppBootstrapped) {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
       storage: window.localStorage,
       storageKey: 'pulse-notes-auth-v1',
     },
@@ -254,6 +254,10 @@ function setAuthHint(label) {
   authHintText.textContent = label;
 }
 
+function setAuthEmailInstructions() {
+  setAuthHint('We will send a secure sign-in email. Use its link, or enter the code if one is shown.');
+}
+
 function syncAuthVisibility() {
   if (!authPanel) return;
   authPanel.hidden = Boolean(currentUser);
@@ -263,7 +267,7 @@ function applySignedOutState(message = 'Not signed in') {
   currentUser = null;
   syncAuthVisibility();
   setAuthStatus(message);
-  setAuthHint('Enter your email to receive a one-time sign-in code.');
+  setAuthEmailInstructions();
   setSyncStatus('Sign in required', false);
   renderActions();
 }
@@ -1415,14 +1419,14 @@ async function handleAuthSubmit() {
   const email = authEmailInput.value.trim();
   if (!email) {
     setAuthStatus('Enter your email');
-    setAuthHint('Add the email address where you want to receive your one-time code.');
+    setAuthEmailInstructions();
     return;
   }
 
   authSubmitButton.disabled = true;
   authSubmitButton.textContent = 'Sending...';
   setAuthStatus('Registering your sign-in request...');
-  setAuthHint('Your request is registered. A one-time sign-in code should arrive in your email shortly.');
+  setAuthHint('Check your inbox for the secure sign-in email. Use the link, or enter the code if the email includes one.');
 
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
@@ -1431,16 +1435,16 @@ async function handleAuthSubmit() {
 
   if (error) {
     authSubmitButton.disabled = false;
-    authSubmitButton.textContent = 'Send code';
+    authSubmitButton.textContent = 'Send sign-in email';
     setAuthStatus(error.message || 'Sign-in failed');
     setAuthHint('Something went wrong while registering your sign-in request. Please try again.');
     return;
   }
 
   authSubmitButton.disabled = false;
-  authSubmitButton.textContent = 'Code sent';
+  authSubmitButton.textContent = 'Email sent';
   setAuthStatus('Request registered');
-  setAuthHint('Your sign-in request is registered. Please check your inbox and spam folder for the one-time code.');
+  setAuthHint('Your sign-in request is registered. Check your inbox and spam folder for the secure sign-in email.');
   authCodeInput?.focus();
 }
 
