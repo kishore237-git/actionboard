@@ -9,24 +9,25 @@
     <meta name="theme-color" content="#111827" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Pulse Notes" />
-    <title>Pulse Notes</title>
+    <meta name="apple-mobile-web-app-title" content="Next Pulse" />
+    <title>Next Pulse</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="styles.css?v=20260913.5" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">Action board</p>
-          <h1>Pulse Notes</h1>
+        <div class="brand">
+          <img class="app-logo" src="icons/brand-mark.png" width="136" height="64" alt="Next Pulse" />
+          <div>
+            <p class="eyebrow">Action board</p>
+            <h1>Next Pulse</h1>
+          </div>
         </div>
         <div class="topbar-actions">
-          <span class="connection-pill" aria-live="polite">
-            <span id="connectionDot" class="status-dot offline" aria-hidden="true"></span>
-            <span id="connectionLabel">Offline</span>
-          </span>
           <button id="darkModeToggle" class="icon-button" aria-label="Toggle dark mode">
             <span data-icon="moon"></span>
           </button>
@@ -193,7 +194,7 @@
       <section id="demoNotice" class="demo-notice" hidden>
         <div class="demo-notice-copy">
           <strong>Demo workspace</strong>
-          <span>These sample actions are here to show how Pulse Notes works.</span>
+          <span>These sample actions are here to show how Next Pulse works.</span>
         </div>
         <button id="startCleanButton" class="demo-clean-button" type="button">Start clean</button>
       </section>

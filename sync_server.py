@@ -124,5 +124,5 @@ class SyncHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     server = HTTPServer(("0.0.0.0", PORT), SyncHandler)
-    print(f"Pulse Notes sync server running on http://localhost:{PORT}")
+    print(f"Next Pulse sync server running on http://localhost:{PORT}")
     server.serve_forever()

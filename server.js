@@ -110,7 +110,7 @@ const server = http.createServer((request, response) => {
 
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`Pulse Notes sync server running on http://localhost:${PORT}`);
+    console.log(`Next Pulse sync server running on http://localhost:${PORT}`);
   });
 }
 

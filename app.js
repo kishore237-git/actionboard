@@ -1,5 +1,5 @@
 if (window.__pulseNotesAppBootstrapped) {
-  console.warn('Pulse Notes already initialized; skipping duplicate bootstrap.');
+  console.warn('Next Pulse already initialized; skipping duplicate bootstrap.');
 } else {
   window.__pulseNotesAppBootstrapped = true;
 
