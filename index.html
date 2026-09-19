@@ -28,14 +28,57 @@
           </div>
         </div>
         <div class="topbar-actions">
+          <button id="syncPillButton" class="sync-pill" type="button" aria-haspopup="true" aria-expanded="false">
+            <span id="syncPillDot" class="status-dot offline" aria-hidden="true"></span>
+            <span id="syncPillLabel">Offline</span>
+          </button>
           <button id="darkModeToggle" class="icon-button" aria-label="Toggle dark mode">
             <span data-icon="moon"></span>
           </button>
-          <button id="voiceButton" class="mic-button" aria-label="Use voice input">
-            <span data-icon="mic"></span>
-          </button>
         </div>
       </header>
+
+      <div id="syncPopover" class="sync-popover" hidden>
+        <section class="sync-panel card">
+          <div class="sync-header">
+            <div class="sync-status-wrap">
+              <p class="sync-label">Cloud sync</p>
+              <div class="sync-status-row">
+                <span id="syncDot" class="status-dot offline" aria-hidden="true"></span>
+                <strong id="syncStatusText">Offline</strong>
+              </div>
+            </div>
+            <div class="sync-actions">
+              <button id="installButton" class="sync-button install-button" type="button" hidden>Install app</button>
+              <button id="syncButton" class="sync-button" type="button">Sync now</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="authPanel" class="auth-panel card" aria-label="Authentication panel">
+          <div class="auth-header">
+            <div>
+              <p class="sync-label">Account</p>
+              <strong id="authStatusText">Not signed in</strong>
+            </div>
+          </div>
+          <div class="auth-controls">
+            <input id="authEmailInput" type="email" placeholder="you@example.com" autocomplete="email" />
+            <button id="authSubmitButton" class="sync-button" type="button">Send sign-in email</button>
+            <input id="authCodeInput" type="text" inputmode="numeric" maxlength="8" placeholder="Enter email code, if shown" autocomplete="one-time-code" />
+            <button id="authVerifyButton" class="sync-button" type="button">Verify code</button>
+          </div>
+          <p id="authHintText" class="auth-hint">We will send a secure sign-in email. Use its link, or enter the code if one is shown.</p>
+        </section>
+      </div>
+
+      <section id="dailyQuoteBanner" class="quote-banner" hidden>
+        <div class="quote-banner-copy">
+          <span class="quote-icon" data-icon="sparkles" aria-hidden="true"></span>
+          <p id="dailyQuoteText"></p>
+        </div>
+        <button id="dismissQuoteButton" class="icon-button" type="button" aria-label="Dismiss quote"><span data-icon="x"></span></button>
+      </section>
 
       <section class="summary-panel" aria-label="Action summary">
         <button type="button" class="summary-item filter-item" data-filter="today" aria-pressed="false">
@@ -84,38 +127,6 @@
         </div>
       </section>
 
-      <section class="sync-panel card">
-        <div class="sync-header">
-          <div class="sync-status-wrap">
-            <p class="sync-label">Cloud sync</p>
-            <div class="sync-status-row">
-              <span id="syncDot" class="status-dot offline" aria-hidden="true"></span>
-              <strong id="syncStatusText">Offline</strong>
-            </div>
-          </div>
-          <div class="sync-actions">
-            <button id="installButton" class="sync-button install-button" type="button" hidden>Install app</button>
-            <button id="syncButton" class="sync-button" type="button">Sync now</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="authPanel" class="auth-panel card" aria-label="Authentication panel">
-        <div class="auth-header">
-          <div>
-            <p class="sync-label">Account</p>
-            <strong id="authStatusText">Not signed in</strong>
-          </div>
-        </div>
-        <div class="auth-controls">
-          <input id="authEmailInput" type="email" placeholder="you@example.com" autocomplete="email" />
-          <button id="authSubmitButton" class="sync-button" type="button">Send sign-in email</button>
-          <input id="authCodeInput" type="text" inputmode="numeric" maxlength="8" placeholder="Enter email code, if shown" autocomplete="one-time-code" />
-          <button id="authVerifyButton" class="sync-button" type="button">Verify code</button>
-        </div>
-        <p id="authHintText" class="auth-hint">We will send a secure sign-in email. Use its link, or enter the code if one is shown.</p>
-      </section>
-
       <section id="composerCard" class="composer card composer-collapsed" aria-live="polite">
         <div class="composer-collapsed-header">
           <button id="quickAddButton" class="quick-add-summary quick-add-button" type="button" title="Add a new action">
@@ -123,6 +134,7 @@
             <span>Quick add</span>
           </button>
           <div class="composer-header-actions">
+            <button id="voiceButtonCollapsed" class="icon-button composer-icon-button voice-input-button" type="button" aria-label="Use voice input" title="Voice input"><span data-icon="mic"></span></button>
             <button id="cancelActionButton" class="icon-button composer-icon-button" type="button" aria-label="Cancel action" title="Cancel"><span data-icon="x"></span></button>
             <button id="addActionButton" class="icon-button composer-icon-button add-icon-button" type="button" aria-label="Add action" title="Add action"><span data-icon="check"></span></button>
           </div>
@@ -135,7 +147,10 @@
           </div>
 
           <label class="sr-only" for="actionInput">Action</label>
-          <textarea id="actionInput" rows="2" placeholder="Capture the next action..." autocomplete="off"></textarea>
+          <div class="textarea-wrap">
+            <textarea id="actionInput" rows="2" placeholder="Capture the next action..." autocomplete="off"></textarea>
+            <button id="voiceButtonExpanded" class="mic-button mic-button-floating voice-input-button" type="button" aria-label="Use voice input" title="Voice input"><span data-icon="mic"></span></button>
+          </div>
 
           <div class="date-row">
             <label class="date-label" for="dueDateInput">Due by</label>
@@ -178,6 +193,14 @@
             <button class="view-tab" data-view="matrix" type="button">Matrix</button>
           </div>
           <button id="readTopActionsButton" class="icon-button read-aloud-button" type="button" aria-label="Read top actions aloud" title="Read top actions aloud"><span data-icon="volume"></span></button>
+          <div class="export-wrap">
+            <button id="exportButton" class="icon-button" type="button" aria-label="Export actions" title="Export actions" aria-haspopup="true" aria-expanded="false"><span data-icon="download"></span></button>
+            <div id="exportMenu" class="export-menu" hidden>
+              <button type="button" data-export-format="csv">Export as CSV</button>
+              <button type="button" data-export-format="json">Export as JSON</button>
+              <button type="button" data-export-format="ics">Export as Calendar (.ics)</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -200,6 +223,16 @@
       </section>
 
       <section id="actionList" class="action-list" aria-live="polite"></section>
+
+      <div id="confirmDialog" class="confirm-overlay" hidden>
+        <div class="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmDialogMessage">
+          <p id="confirmDialogMessage">Delete this action?</p>
+          <div class="confirm-actions">
+            <button id="confirmDialogCancel" class="ghost-button" type="button">Cancel</button>
+            <button id="confirmDialogConfirm" class="primary-button danger-button" type="button">Delete</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

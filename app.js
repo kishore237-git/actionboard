@@ -42,7 +42,7 @@ const actionInput = document.getElementById('actionInput');
 const dueDateInput = document.getElementById('dueDateInput');
 const addActionButton = document.getElementById('addActionButton');
 const cancelActionButton = document.getElementById('cancelActionButton');
-const voiceButton = document.getElementById('voiceButton');
+const voiceButtons = document.querySelectorAll('.voice-input-button');
 const darkModeToggle = document.getElementById('darkModeToggle');
 const composerCard = document.getElementById('composerCard');
 const composerExpandButton = document.getElementById('composerExpandButton');
@@ -60,6 +60,11 @@ const syncStatusText = document.getElementById('syncStatusText');
 const syncDot = document.getElementById('syncDot');
 const connectionDot = document.getElementById('connectionDot');
 const connectionLabel = document.getElementById('connectionLabel');
+const syncPillButton = document.getElementById('syncPillButton');
+const syncPillDot = document.getElementById('syncPillDot');
+const syncPillLabel = document.getElementById('syncPillLabel');
+const syncPopover = document.getElementById('syncPopover');
+const appShell = document.querySelector('.app-shell');
 const authPanel = document.getElementById('authPanel');
 const authStatusText = document.getElementById('authStatusText');
 const authEmailInput = document.getElementById('authEmailInput');
@@ -67,6 +72,15 @@ const authSubmitButton = document.getElementById('authSubmitButton');
 const authCodeInput = document.getElementById('authCodeInput');
 const authVerifyButton = document.getElementById('authVerifyButton');
 const authHintText = document.getElementById('authHintText');
+const confirmDialog = document.getElementById('confirmDialog');
+const confirmDialogMessage = document.getElementById('confirmDialogMessage');
+const confirmDialogCancel = document.getElementById('confirmDialogCancel');
+const confirmDialogConfirm = document.getElementById('confirmDialogConfirm');
+const exportButton = document.getElementById('exportButton');
+const exportMenu = document.getElementById('exportMenu');
+const dailyQuoteBanner = document.getElementById('dailyQuoteBanner');
+const dailyQuoteText = document.getElementById('dailyQuoteText');
+const dismissQuoteButton = document.getElementById('dismissQuoteButton');
   const todayCount = document.getElementById('todayCount');
   const highPriorityCount = document.getElementById('highPriorityCount');
   const overdueCount = document.getElementById('overdueCount');
@@ -266,6 +280,21 @@ function setSyncStatus(label, isSynced = false) {
 
   if (connectionLabel) {
     connectionLabel.textContent = label;
+  }
+
+  if (syncPillLabel) {
+    syncPillLabel.textContent = label;
+  }
+
+  if (syncPillDot) {
+    syncPillDot.classList.toggle('online', isSynced);
+    syncPillDot.classList.toggle('offline', !isSynced);
+  }
+
+  if (appShell) {
+    const glowState = isSynced ? 'glow-synced' : label === 'Syncing...' ? 'glow-syncing' : 'glow-offline';
+    appShell.classList.remove('glow-synced', 'glow-syncing', 'glow-offline');
+    appShell.classList.add(glowState);
   }
 }
 
@@ -633,6 +662,7 @@ function iconSvg(name, className = '') {
     check: '<path d="m5 12 4 4L19 6"/>',
     circle: '<circle cx="12" cy="12" r="7"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
     heart: '<path d="M20.8 8.7c0 5.2-8.8 10.3-8.8 10.3S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.1a4.7 4.7 0 0 1 8.8 2.6Z"/>',
     mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"/>',
     moon: '<path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"/>',
@@ -887,6 +917,90 @@ function renderMatrix() {
     </section>`;
   }).join('')}</div>`;
   renderSummary();
+}
+
+function triggerDownload(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function toIcsDate(dateString) {
+  return dateString.slice(0, 10).replace(/-/g, '');
+}
+
+function exportActions(format) {
+  const actions = state.actions.filter((action) => !isDeleted(action));
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  if (format === 'json') {
+    triggerDownload(`next-pulse-export-${stamp}.json`, JSON.stringify(actions, null, 2), 'application/json');
+    return;
+  }
+
+  if (format === 'csv') {
+    const columns = ['title', 'category', 'importance', 'urgency', 'project', 'hashtags', 'dueDate', 'completed', 'createdAt'];
+    const rows = [columns.join(',')];
+    actions.forEach((action) => {
+      rows.push(columns.map((column) => {
+        const value = column === 'hashtags' ? (action.hashtags || []).join(' ') : action[column];
+        return csvEscape(value);
+      }).join(','));
+    });
+    triggerDownload(`next-pulse-export-${stamp}.csv`, rows.join('\r\n'), 'text/csv');
+    return;
+  }
+
+  if (format === 'ics') {
+    const events = actions.filter((action) => action.dueDate).map((action) => [
+      'BEGIN:VEVENT',
+      `UID:${action.id}@next-pulse`,
+      `DTSTAMP:${toIcsDate(action.createdAt)}T000000Z`,
+      `DTSTART;VALUE=DATE:${toIcsDate(action.dueDate)}`,
+      `SUMMARY:${(action.title || '').replace(/\r?\n/g, ' ')}`,
+      'END:VEVENT',
+    ].join('\r\n'));
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Next Pulse//EN', ...events, 'END:VCALENDAR'].join('\r\n');
+    triggerDownload(`next-pulse-export-${stamp}.ics`, ics, 'text/calendar');
+  }
+}
+
+const DAILY_QUOTES = [
+  'Small steps every day lead to big results.',
+  'Focus on progress, not perfection.',
+  'The best time to start was yesterday. The next best time is now.',
+  'Done is better than perfect.',
+  'One task at a time turns chaos into calm.',
+  'Discipline is choosing what you want most over what you want now.',
+  'Clarity comes from action, not thought.',
+  'You do not have to see the whole staircase, just take the first step.',
+  'Momentum is built one completed task at a time.',
+  'A little progress each day adds up to big results.',
+  'Your future is created by what you do today, not tomorrow.',
+  'Stay focused, stay humble, keep moving.',
+];
+
+function maybeShowDailyQuote() {
+  if (!dailyQuoteBanner || !dailyQuoteText) return;
+  const QUOTE_DATE_KEY = 'pulse-notes-last-quote-date';
+  const today = new Date().toDateString();
+  if (localStorage.getItem(QUOTE_DATE_KEY) === today) return;
+
+  const quote = DAILY_QUOTES[Math.floor(Math.random() * DAILY_QUOTES.length)];
+  dailyQuoteText.textContent = quote;
+  dailyQuoteBanner.hidden = false;
+  localStorage.setItem(QUOTE_DATE_KEY, today);
 }
 
 function getNaturalSpeechVoice() {
@@ -1331,7 +1445,45 @@ function handleActionListClick(event) {
   }
 
   if (actionType === 'toggle') toggleAction(id);
-  if (actionType === 'delete') deleteAction(id);
+  if (actionType === 'delete') {
+    confirmDeleteAction('Delete this action? This cannot be undone.').then((confirmed) => {
+      if (confirmed) deleteAction(id);
+    });
+  }
+}
+
+function confirmDeleteAction(message) {
+  if (!confirmDialog || !confirmDialogMessage || !confirmDialogCancel || !confirmDialogConfirm) {
+    return Promise.resolve(true);
+  }
+
+  confirmDialogMessage.textContent = message;
+  confirmDialog.hidden = false;
+
+  return new Promise((resolve) => {
+    const cleanup = (result) => {
+      confirmDialog.hidden = true;
+      confirmDialogCancel.removeEventListener('click', onCancel);
+      confirmDialogConfirm.removeEventListener('click', onConfirm);
+      confirmDialog.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    };
+    const onCancel = () => cleanup(false);
+    const onConfirm = () => cleanup(true);
+    const onOverlayClick = (event) => {
+      if (event.target === confirmDialog) cleanup(false);
+    };
+    const onKeydown = (event) => {
+      if (event.key === 'Escape') cleanup(false);
+    };
+
+    confirmDialogCancel.addEventListener('click', onCancel);
+    confirmDialogConfirm.addEventListener('click', onConfirm);
+    confirmDialog.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+    confirmDialogConfirm.focus();
+  });
 }
 
 function clearSwipeIntent(article) {
@@ -1420,11 +1572,15 @@ function handleSwipeGestures(event) {
 
   if (article.__swipeLocked && deltaX < -55) {
     toggleAction(id);
+    clearSwipeIntent(article);
   } else if (article.__swipeLocked && deltaX > 55) {
-    deleteAction(id);
+    clearSwipeIntent(article);
+    confirmDeleteAction('Delete this action? This cannot be undone.').then((confirmed) => {
+      if (confirmed) deleteAction(id);
+    });
+  } else {
+    clearSwipeIntent(article);
   }
-
-  clearSwipeIntent(article);
 }
 
 function setComposerExpanded(isExpanded) {
@@ -1630,7 +1786,8 @@ function bindUI() {
 
   document.querySelectorAll('.filter-item').forEach((button) => {
     button.addEventListener('click', () => {
-      currentFilter = button.dataset.filter;
+      const clickedFilter = button.dataset.filter;
+      currentFilter = currentFilter === clickedFilter ? 'all' : clickedFilter;
       syncSummaryFilterSelection();
       renderActions();
     });
@@ -1695,6 +1852,47 @@ function bindUI() {
       }
     });
   }
+
+  if (syncPillButton && syncPopover) {
+    syncPillButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = !syncPopover.hidden;
+      syncPopover.hidden = isOpen;
+      syncPillButton.setAttribute('aria-expanded', String(!isOpen));
+    });
+    document.addEventListener('click', (event) => {
+      if (syncPopover.hidden) return;
+      if (event.target === syncPillButton || syncPopover.contains(event.target)) return;
+      syncPopover.hidden = true;
+      syncPillButton.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  if (exportButton && exportMenu) {
+    exportButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = !exportMenu.hidden;
+      exportMenu.hidden = isOpen;
+      exportButton.setAttribute('aria-expanded', String(!isOpen));
+    });
+    exportMenu.querySelectorAll('[data-export-format]').forEach((button) => {
+      button.addEventListener('click', () => {
+        exportActions(button.dataset.exportFormat);
+        exportMenu.hidden = true;
+        exportButton.setAttribute('aria-expanded', 'false');
+      });
+    });
+    document.addEventListener('click', (event) => {
+      if (exportMenu.hidden) return;
+      if (event.target === exportButton || exportMenu.contains(event.target)) return;
+      exportMenu.hidden = true;
+      exportButton.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  dismissQuoteButton?.addEventListener('click', () => {
+    if (dailyQuoteBanner) dailyQuoteBanner.hidden = true;
+  });
 
   actionList.addEventListener('click', handleActionListClick);
   actionList.addEventListener('submit', (event) => {
@@ -1761,7 +1959,7 @@ function bindUI() {
     }
   });
 
-  voiceButton.addEventListener('click', startVoiceCapture);
+  voiceButtons.forEach((button) => button.addEventListener('click', startVoiceCapture));
 }
 
 function startVoiceCapture() {
@@ -1771,6 +1969,8 @@ function startVoiceCapture() {
     alert('Voice capture is not supported in this browser. You can still type actions manually.');
     return;
   }
+
+  setComposerExpanded(true);
 
   const recognition = new SpeechRecognition();
   recognition.lang = 'en-US';
@@ -1788,8 +1988,10 @@ function startVoiceCapture() {
   };
 
   recognition.start();
-  voiceButton.classList.add('listening');
-  setButtonIcon(voiceButton, 'mic');
+  voiceButtons.forEach((button) => {
+    button.classList.add('listening');
+    setButtonIcon(button, 'mic');
+  });
 
   recognition.onresult = (event) => {
     let interimTranscript = '';
@@ -1810,13 +2012,17 @@ function startVoiceCapture() {
   };
 
   recognition.onend = () => {
-    voiceButton.classList.remove('listening');
-    setButtonIcon(voiceButton, 'mic');
+    voiceButtons.forEach((button) => {
+      button.classList.remove('listening');
+      setButtonIcon(button, 'mic');
+    });
   };
 
   recognition.onerror = () => {
-    voiceButton.classList.remove('listening');
-    setButtonIcon(voiceButton, 'mic');
+    voiceButtons.forEach((button) => {
+      button.classList.remove('listening');
+      setButtonIcon(button, 'mic');
+    });
   };
 }
 
@@ -1851,6 +2057,7 @@ async function init() {
   }
 
   setComposerExpanded(false);
+  maybeShowDailyQuote();
 
   await initializeAuth();
 
