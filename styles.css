@@ -1455,6 +1455,10 @@ body.dark-mode .focus-task-card.suggested {
   background: rgba(91, 120, 255, 0.08);
 }
 
+.demo-notice[hidden] {
+  display: none !important;
+}
+
 .demo-notice-copy {
   display: grid;
   gap: 3px;

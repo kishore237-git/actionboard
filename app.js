@@ -332,6 +332,7 @@ function syncAuthVisibility() {
 function applySignedOutState(message = 'Not signed in') {
   currentUser = null;
   syncAuthVisibility();
+  syncDemoNotice();
   setAuthStatus(message);
   setAuthEmailInstructions();
   setSyncStatus('Sign in required', false);
@@ -341,6 +342,7 @@ function applySignedOutState(message = 'Not signed in') {
 function applySignedInState(user) {
   currentUser = user || null;
   syncAuthVisibility();
+  syncDemoNotice();
   setAuthStatus(`Signed in as ${currentUser?.email || 'user'}`);
   setAuthHint('Your email was verified successfully.');
   setSyncStatus('Synced', true);
