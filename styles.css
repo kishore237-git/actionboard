@@ -2006,6 +2006,25 @@ body.dark-mode .card-timestamp {
 }
 
 @media (max-width: 520px) {
+  html, body {
+    background: linear-gradient(180deg, var(--bg-strong) 0%, var(--bg) 100%);
+  }
+
+  body.dark-mode {
+    background: linear-gradient(180deg, #07111c 0%, #111827 100%);
+  }
+
+  .app-shell.glow-synced,
+  .app-shell.glow-syncing,
+  .app-shell.glow-offline {
+    box-shadow: none;
+    animation: none;
+  }
+
+  .action-list {
+    margin-inline: 6px;
+  }
+
   .matrix-grid {
     grid-template-columns: 1fr;
   }
