@@ -1790,9 +1790,9 @@ function bindUI() {
     const suggestion = e.target.closest('.project-suggestion');
     if (suggestion) {
       e.preventDefault();
+      e.stopPropagation();
       if (projectInput) projectInput.value = suggestion.dataset.project;
       if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
-      projectInput?.focus();
     }
   });
   projectSuggestionsDropdown?.addEventListener('mouseenter', () => {

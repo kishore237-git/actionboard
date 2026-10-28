@@ -787,6 +787,8 @@ textarea {
   justify-content: space-between;
   gap: 8px;
   margin: 12px 0 10px;
+  position: relative;
+  z-index: 1;
 }
 
 #notesInput {
@@ -847,9 +849,10 @@ textarea {
   border-radius: 0 0 12px 12px;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 10000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   pointer-events: auto;
+  will-change: display;
 }
 
 body.dark-mode .project-suggestions {
