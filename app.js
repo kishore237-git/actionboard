@@ -51,6 +51,8 @@ const actionList = document.getElementById('actionList');
 const demoNotice = document.getElementById('demoNotice');
 const startCleanButton = document.getElementById('startCleanButton');
 const projectInput = document.getElementById('projectInput');
+const projectPicker = document.getElementById('projectPicker');
+const projectPickerRow = document.getElementById('projectPickerRow');
 const projectFilter = document.getElementById('projectFilter');
 const hashtagFilterInput = document.getElementById('hashtagFilterInput');
 const readTopActionsButton = document.getElementById('readTopActionsButton');
@@ -619,8 +621,21 @@ function getActionHashtags(action) {
 }
 
 function getProjectNames() {
-  return [...new Set(state.actions.filter((action) => !isDeleted(action) && action.project).map((action) => action.project.trim()))]
+  return [...new Set(state.actions
+    .filter((action) => !isDeleted(action) && action.project)
+    .map((action) => action.project.trim())
+    .filter(Boolean))]
     .sort((a, b) => a.localeCompare(b));
+}
+
+function syncProjectPickerOptions() {
+  if (!projectPicker || !projectPickerRow) return;
+  const projects = getProjectNames();
+  projectPicker.innerHTML = [
+    '<option value="">Choose an existing project</option>',
+    ...projects.map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`),
+  ].join('');
+  projectPickerRow.hidden = projects.length === 0;
 }
 
 function syncProjectFilterOptions() {
@@ -1094,6 +1109,7 @@ function renderDoneSection(doneActions) {
 
 function renderActions() {
   syncDemoNotice();
+  syncProjectPickerOptions();
   syncProjectFilterOptions();
   syncHashtagFilterOptions();
   if (currentView === 'timeline') {
@@ -1259,6 +1275,7 @@ function syncUrgencySelection() {
 function resetComposerForm() {
   actionInput.value = '';
   if (projectInput) projectInput.value = '';
+  if (projectPicker) projectPicker.value = '';
   dueDateInput.value = '';
   selectedCategory = 'work';
   selectedImportance = 2;
@@ -1752,6 +1769,12 @@ function bindUI() {
   });
   quickAddButton?.addEventListener('click', () => {
     setComposerExpanded(true);
+  });
+  projectPicker?.addEventListener('change', () => {
+    if (projectInput) projectInput.value = projectPicker.value;
+  });
+  projectInput?.addEventListener('input', () => {
+    if (projectPicker) projectPicker.value = '';
   });
   actionInput?.addEventListener('focus', () => {
     setComposerExpanded(true);

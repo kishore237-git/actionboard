@@ -789,6 +789,10 @@ textarea {
   margin: 12px 0 10px;
 }
 
+.date-row[hidden] {
+  display: none;
+}
+
 #notesInput {
   position: relative;
   z-index: 1;
