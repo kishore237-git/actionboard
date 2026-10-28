@@ -1767,7 +1767,6 @@ function bindUI() {
     setComposerExpanded(true);
   });
   projectInput?.addEventListener('focus', () => {
-    setComposerExpanded(true);
     if (projectSuggestionsDropdown) {
       projectSuggestionsDropdown.style.display = 'block';
       syncProjectSuggestions();
