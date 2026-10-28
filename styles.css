@@ -825,6 +825,54 @@ textarea {
   min-width: 0;
 }
 
+.project-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.project-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body.dark-mode .project-suggestions {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(148, 163, 184, 0.1);
+}
+
+.project-suggestion {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+  transition: background 0.2s ease;
+}
+
+body.dark-mode .project-suggestion {
+  border-bottom-color: rgba(148, 163, 184, 0.08);
+}
+
+.project-suggestion:hover {
+  background: rgba(91, 120, 255, 0.08);
+}
+
+body.dark-mode .project-suggestion:hover {
+  background: rgba(91, 120, 255, 0.15);
+}
+
+.project-suggestion:last-child {
+  border-bottom: none;
+}
+
 .priority-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

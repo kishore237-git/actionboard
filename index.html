@@ -159,7 +159,10 @@
 
           <div class="date-row">
             <label class="date-label" for="projectInput">Project</label>
-            <input id="projectInput" class="text-input" type="text" placeholder="Optional — choose or enter a project" autocomplete="off" />
+            <div class="project-input-wrapper">
+              <input id="projectInput" class="text-input" type="text" placeholder="Optional — choose or type a project" autocomplete="off" />
+              <div id="projectSuggestionsDropdown" class="project-suggestions" style="display: none;"></div>
+            </div>
           </div>
 
           <div class="priority-row">

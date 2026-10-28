@@ -51,6 +51,7 @@ const actionList = document.getElementById('actionList');
 const demoNotice = document.getElementById('demoNotice');
 const startCleanButton = document.getElementById('startCleanButton');
 const projectInput = document.getElementById('projectInput');
+const projectSuggestionsDropdown = document.getElementById('projectSuggestionsDropdown');
 const projectFilter = document.getElementById('projectFilter');
 const hashtagFilterInput = document.getElementById('hashtagFilterInput');
 const readTopActionsButton = document.getElementById('readTopActionsButton');
@@ -627,16 +628,10 @@ function getProjectNames() {
 }
 
 function syncProjectSuggestions() {
-  if (!projectInput) return;
-  projectInput.setAttribute('list', 'projectOptions');
-  let datalist = document.getElementById('projectOptions');
-  if (!datalist) {
-    datalist = document.createElement('datalist');
-    datalist.id = 'projectOptions';
-    document.body.appendChild(datalist);
-  }
-  datalist.innerHTML = getProjectNames()
-    .map((project) => `<option value="${escapeHtml(project)}"></option>`)
+  if (!projectSuggestionsDropdown) return;
+  const projects = getProjectNames();
+  projectSuggestionsDropdown.innerHTML = projects
+    .map((project) => `<div class="project-suggestion" data-project="${escapeHtml(project)}">${escapeHtml(project)}</div>`)
     .join('');
 }
 
@@ -1771,8 +1766,30 @@ function bindUI() {
   quickAddButton?.addEventListener('click', () => {
     setComposerExpanded(true);
   });
-  actionInput?.addEventListener('focus', () => {
+  projectInput?.addEventListener('focus', () => {
     setComposerExpanded(true);
+    if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'block';
+  });
+  projectInput?.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
+    }, 200);
+  });
+  projectInput?.addEventListener('input', () => {
+    if (projectSuggestionsDropdown) {
+      const filterText = (projectInput.value || '').toLowerCase();
+      document.querySelectorAll('.project-suggestion').forEach((item) => {
+        const matches = item.dataset.project.toLowerCase().includes(filterText);
+        item.style.display = matches ? 'block' : 'none';
+      });
+      projectSuggestionsDropdown.style.display = filterText || getProjectNames().length > 0 ? 'block' : 'none';
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.project-suggestion')) {
+      if (projectInput) projectInput.value = e.target.dataset.project;
+      if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
+    }
   });
 
   darkModeToggle.addEventListener('click', () => {
