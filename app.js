@@ -690,6 +690,7 @@ function iconSvg(name, className = '') {
     volume: '<path d="M4 10v4h4l5 4V6l-5 4H4ZM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/>',
     x: '<path d="m6 6 12 12M18 6 6 18"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    more: '<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',
     zap: '<path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/>',
   };
   return `<svg class="ui-icon ${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name] || paths.sparkles}</svg>`;
@@ -1085,7 +1086,10 @@ function renderDoneSection(doneActions) {
 
           <div class="action-controls compact-controls">
             <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="Undo action" title="Undo action">${iconSvg('check')}</button>
-            <button class="action-delete" type="button" data-action="delete" data-id="${action.id}" aria-label="Delete action" title="Delete action">${iconSvg('x')}</button>
+            <details class="action-more-menu">
+              <summary class="action-more-button" aria-label="More actions" title="More actions">${iconSvg('more')}</summary>
+              <button class="action-delete" type="button" data-action="delete" data-id="${action.id}">Delete</button>
+            </details>
           </div>
         </article>
       `;
@@ -1147,7 +1151,7 @@ function renderActions() {
       const dueDateValue = formatDateForInput(action.dueDate);
 
       return `
-        <article class="${className} ${action.category} ${overdueClass}" data-id="${action.id}">
+        <article class="${className} ${action.category} ${overdueClass} ${isEditing ? 'editing' : ''}" data-id="${action.id}">
           <div class="action-main">
             <div class="title-row">
               <div class="icon-wrap">${icon}</div>
@@ -1214,18 +1218,23 @@ function renderActions() {
                   </label>
                 </div>
                 <div class="editor-actions">
-                  <button type="submit" class="action-save" data-action="save-edit" data-id="${action.id}" aria-label="Save changes" title="Save changes">✓</button>
-                  <button type="button" class="action-cancel" data-action="cancel-edit" data-id="${action.id}" aria-label="Cancel editing" title="Cancel editing">×</button>
+                  <button type="submit" class="action-save" data-action="save-edit" data-id="${action.id}">Save</button>
+                  <button type="button" class="action-cancel" data-action="cancel-edit" data-id="${action.id}">Cancel</button>
                 </div>
               </form>
             ` : ''}
           </div>
 
-          <div class="action-controls">
-            <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="${action.completed ? 'Undo action' : 'Mark action done'}" title="${action.completed ? 'Undo action' : 'Mark action done'}">${iconSvg('check')}</button>
-            <button class="action-edit" type="button" data-action="edit" data-id="${action.id}" aria-label="Edit action" title="Edit action">${iconSvg('pen')}</button>
-            <button class="action-delete" type="button" data-action="delete" data-id="${action.id}" aria-label="Delete action" title="Delete action">${iconSvg('x')}</button>
-          </div>
+          ${isEditing ? '' : `
+            <div class="action-controls">
+              <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="${action.completed ? 'Undo action' : 'Mark action done'}" title="${action.completed ? 'Undo action' : 'Mark action done'}">${iconSvg('check')}</button>
+              <button class="action-edit" type="button" data-action="edit" data-id="${action.id}" aria-label="Edit action" title="Edit action">${iconSvg('pen')}</button>
+              <details class="action-more-menu">
+                <summary class="action-more-button" aria-label="More actions" title="More actions">${iconSvg('more')}</summary>
+                <button class="action-delete" type="button" data-action="delete" data-id="${action.id}">Delete</button>
+              </details>
+            </div>
+          `}
         </article>
       `;
     })
@@ -1514,7 +1523,7 @@ function clearSwipeIntent(article) {
 }
 
 function isInteractiveTarget(target) {
-  return Boolean(target && target.closest && target.closest('button, input, textarea, select, label, form'));
+  return Boolean(target && target.closest && target.closest('button, input, textarea, select, label, form, summary'));
 }
 
 function applySwipeVisual(article, deltaX) {
@@ -1964,6 +1973,9 @@ function bindUI() {
     if (event.key === 'Escape') {
       event.preventDefault();
       cancelEditAction();
+    } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      saveEditAction(form.dataset.editId);
     }
   });
   actionList.addEventListener('touchstart', (event) => {
