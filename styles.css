@@ -1243,6 +1243,187 @@ body.dark-mode .context-select {
   flex-wrap: wrap;
 }
 
+.app-shell.focus-view .summary-panel,
+.app-shell.focus-view .context-panel,
+.app-shell.focus-view .sort-panel,
+.app-shell.focus-view .list-header-actions {
+  display: none;
+}
+
+.app-shell.focus-view .list-header {
+  margin-top: 12px;
+}
+
+.focus-view-content {
+  display: grid;
+  gap: 16px;
+}
+
+.focus-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-solid);
+}
+
+.focus-intro p,
+.focus-empty-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.focus-plan-count,
+.focus-position {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.focus-section {
+  display: grid;
+  gap: 9px;
+}
+
+.focus-section > h3 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.focus-task-list {
+  display: grid;
+  gap: 9px;
+}
+
+.focus-task-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-solid);
+}
+
+.focus-task-card.next-up {
+  border-color: rgba(91, 120, 255, 0.35);
+  box-shadow: 0 8px 20px rgba(91, 120, 255, 0.08);
+}
+
+.focus-task-card.suggested {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.focus-task-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.focus-task-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.focus-task-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.focus-task-copy h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.focus-reason {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.focus-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.focus-task-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.focus-task-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.focus-action-button {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.focus-action-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.focus-add-button {
+  border-color: rgba(91, 120, 255, 0.28);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.focus-remove-button {
+  border-color: transparent;
+}
+
+body.dark-mode .focus-task-card.suggested {
+  background: rgba(15, 23, 42, 0.72);
+}
+
+@media (max-width: 560px) {
+  .focus-intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .focus-task-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .focus-task-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
 .sort-label {
   font-size: 0.72rem;
   text-transform: uppercase;

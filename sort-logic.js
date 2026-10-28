@@ -193,12 +193,62 @@ function sortActions(actions, sortKey = 'priority') {
   });
 }
 
+function getFocusDeadlineRank(action, referenceDate = new Date()) {
+  if (!action.dueDate) return 0;
+
+  const today = startOfDay(referenceDate).getTime();
+  const dueDate = startOfDay(action.dueDate).getTime();
+  const daysUntilDue = Math.round((dueDate - today) / (24 * 60 * 60 * 1000));
+
+  if (daysUntilDue < 0) return 3;
+  if (daysUntilDue === 0) return 2;
+  if (daysUntilDue <= 3) return 1;
+  return 0;
+}
+
+function sortFocusSuggestions(actions, referenceDate = new Date()) {
+  return [...actions].sort((a, b) => {
+    const deadlineDiff = getFocusDeadlineRank(b, referenceDate) - getFocusDeadlineRank(a, referenceDate);
+    if (deadlineDiff !== 0) return deadlineDiff;
+
+    const scoreDiff = priorityScore(b) - priorityScore(a);
+    if (scoreDiff !== 0) return scoreDiff;
+
+    const dueA = a.dueDate ? startOfDay(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+    const dueB = b.dueDate ? startOfDay(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+    if (dueA !== dueB) return dueA - dueB;
+
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
+}
+
+function getFocusReason(action, referenceDate = new Date()) {
+  if (action.dueDate) {
+    const daysUntilDue = Math.round(
+      (startOfDay(action.dueDate).getTime() - startOfDay(referenceDate).getTime()) / (24 * 60 * 60 * 1000),
+    );
+    if (daysUntilDue < 0) return 'Past due';
+    if (daysUntilDue === 0) return 'Due today';
+    if (daysUntilDue === 1) return 'Due tomorrow';
+    if (daysUntilDue <= 3) return `Due in ${daysUntilDue} days`;
+  }
+
+  const importance = Number(action.importance) || 2;
+  const urgency = Number(action.urgency) || 2;
+  if (importance >= 3 && urgency >= 3) return 'High importance and urgency';
+  if (importance >= 3) return 'High importance';
+  if (urgency >= 3) return 'High urgency';
+  return 'Balanced priority';
+}
+
 if (typeof window !== 'undefined') {
   window.priorityScore = priorityScore;
   window.isOverdue = isOverdue;
   window.isDueToday = isDueToday;
   window.buildDemoActions = buildDemoActions;
   window.sortActions = sortActions;
+  window.sortFocusSuggestions = sortFocusSuggestions;
+  window.getFocusReason = getFocusReason;
 }
 
 if (typeof module !== 'undefined') {
@@ -211,5 +261,7 @@ if (typeof module !== 'undefined') {
     inferredMatrixPriority,
     buildDemoActions,
     sortActions,
+    sortFocusSuggestions,
+    getFocusReason,
   };
 }

@@ -9,6 +9,8 @@ create table if not exists public.actions (
 	project text not null default '',
 	hashtags text[] not null default '{}',
 	due_date timestamptz,
+	focus_date date,
+	focus_rank integer,
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now(),
 	completed boolean not null default false,
@@ -18,12 +20,15 @@ create table if not exists public.actions (
 
 alter table public.actions add column if not exists project text not null default '';
 alter table public.actions add column if not exists hashtags text[] not null default '{}';
+alter table public.actions add column if not exists focus_date date;
+alter table public.actions add column if not exists focus_rank integer;
 
 create index if not exists actions_updated_at_idx on public.actions (updated_at desc);
 create index if not exists actions_category_idx on public.actions (category);
 create index if not exists actions_project_idx on public.actions (project);
 create index if not exists actions_completed_idx on public.actions (completed);
 create index if not exists actions_user_id_idx on public.actions (user_id);
+create index if not exists actions_focus_plan_idx on public.actions (user_id, focus_date, focus_rank) where focus_date is not null;
 
 alter table public.actions enable row level security;
 

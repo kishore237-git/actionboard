@@ -34,7 +34,7 @@ if (window.__pulseNotesAppBootstrapped) {
   let currentFilter = 'all';
   let currentCategoryFilter = 'all';
   let currentSort = 'priority';
-  let currentView = 'list';
+  let currentView = 'focus';
   let currentProjectFilter = 'all';
   let currentHashtagFilter = '';
   let currentSearchTerm = '';
@@ -89,6 +89,7 @@ const confirmDialogCancel = document.getElementById('confirmDialogCancel');
 const confirmDialogConfirm = document.getElementById('confirmDialogConfirm');
 const exportButton = document.getElementById('exportButton');
 const exportMenu = document.getElementById('exportMenu');
+const viewHeading = document.getElementById('viewHeading');
 const dailyQuoteBanner = document.getElementById('dailyQuoteBanner');
 const dailyQuoteText = document.getElementById('dailyQuoteText');
 const dismissQuoteButton = document.getElementById('dismissQuoteButton');
@@ -371,6 +372,8 @@ function toSupabaseRow(action) {
     project: action.project || '',
     hashtags: action.hashtags || [],
     due_date: action.dueDate || null,
+    focus_date: action.focusDate || null,
+    focus_rank: action.focusRank || null,
     created_at: action.createdAt || new Date().toISOString(),
     updated_at: action.updatedAt || action.createdAt || new Date().toISOString(),
     completed: Boolean(action.completed),
@@ -386,6 +389,8 @@ function fromSupabaseRow(row) {
     project: row.project || '',
     hashtags: Array.isArray(row.hashtags) ? row.hashtags : [],
     dueDate: row.due_date || null,
+    focusDate: row.focus_date || null,
+    focusRank: row.focus_rank || null,
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || row.updatedAt || row.createdAt || new Date().toISOString(),
     deletedAt: row.deleted_at || row.deletedAt || null,
@@ -783,6 +788,103 @@ function getFilteredActions() {
   return sortActions(filtered);
 }
 
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getTodayFocusPlan() {
+  const today = getLocalDateKey();
+  const visibleActions = supabaseClient && currentUser
+    ? state.actions.filter((action) => isActionOwnedByCurrentUser(action))
+    : state.actions;
+
+  return visibleActions
+    .filter((action) => !isDeleted(action) && !action.completed && action.focusDate === today && Number(action.focusRank) > 0)
+    .sort((a, b) => Number(a.focusRank) - Number(b.focusRank))
+    .slice(0, 3);
+}
+
+function getFocusCandidates() {
+  const plannedIds = new Set(getTodayFocusPlan().map((action) => action.id));
+  const visibleActions = supabaseClient && currentUser
+    ? state.actions.filter((action) => isActionOwnedByCurrentUser(action))
+    : state.actions;
+  const suggestions = visibleActions.filter((action) => (
+    !isDeleted(action) &&
+    !action.completed &&
+    !plannedIds.has(action.id)
+  ));
+
+  return typeof window.sortFocusSuggestions === 'function'
+    ? window.sortFocusSuggestions(suggestions)
+    : sortActions(suggestions);
+}
+
+function applyTodayFocusPlan(actionIds) {
+  const today = getLocalDateKey();
+  const ranks = new Map(actionIds.slice(0, 3).map((id, index) => [id, index + 1]));
+  const changedIds = [];
+  const updatedAt = new Date().toISOString();
+
+  state.actions = state.actions.map((action) => {
+    const rank = ranks.get(action.id);
+    const isInTodayPlan = action.focusDate === today;
+    if (rank === undefined && !isInTodayPlan) return action;
+
+    const focusDate = rank === undefined ? null : today;
+    const focusRank = rank === undefined ? null : rank;
+    if (action.focusDate === focusDate && Number(action.focusRank || 0) === Number(focusRank || 0)) return action;
+
+    changedIds.push(action.id);
+    return {
+      ...action,
+      userId: action.userId || (currentUser ? currentUser.id : null),
+      focusDate,
+      focusRank,
+      updatedAt,
+    };
+  });
+
+  return changedIds;
+}
+
+function saveTodayFocusPlan(actionIds) {
+  const changedIds = applyTodayFocusPlan(actionIds);
+  if (!changedIds.length) return;
+
+  changedIds.forEach(markActionPending);
+  saveActions();
+  renderActions();
+
+  if (supabaseClient && currentUser) {
+    syncActionsToServer();
+  }
+}
+
+function addToTodayFocus(actionId) {
+  const plan = getTodayFocusPlan();
+  if (plan.length >= 3 || plan.some((action) => action.id === actionId)) return;
+  saveTodayFocusPlan([...plan.map((action) => action.id), actionId]);
+}
+
+function removeFromTodayFocus(actionId) {
+  const plan = getTodayFocusPlan().filter((action) => action.id !== actionId);
+  saveTodayFocusPlan(plan.map((action) => action.id));
+}
+
+function moveTodayFocusAction(actionId, direction) {
+  const plan = getTodayFocusPlan();
+  const index = plan.findIndex((action) => action.id === actionId);
+  const nextIndex = index + direction;
+  if (index < 0 || nextIndex < 0 || nextIndex >= plan.length) return;
+
+  [plan[index], plan[nextIndex]] = [plan[nextIndex], plan[index]];
+  saveTodayFocusPlan(plan.map((action) => action.id));
+}
+
 function matchesCardSearch(action, query) {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return true;
@@ -945,6 +1047,91 @@ function renderTimeline() {
   renderSummary();
 }
 
+function renderFocusCard(action, rank, suggested = false, planLength = 3) {
+  const reason = typeof window.getFocusReason === 'function'
+    ? window.getFocusReason(action)
+    : badgeText('importance', Number(action.importance) || 2);
+  const title = escapeHtml(action.title || 'Untitled action');
+  const notes = action.notes ? `<p class="focus-task-note">${escapeHtml(action.notes)}</p>` : '';
+  const positionLabel = suggested ? 'Suggested' : rank === 1 ? 'Next up' : `Priority ${rank}`;
+  const categoryLabel = action.category === 'work' ? 'Work' : 'Personal';
+  const dueLabel = action.dueDate
+    ? `<span class="badge ${isDueToday(action) ? 'due-today' : isOverdue(action) ? 'overdue-badge' : ''}">${new Date(action.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`
+    : '';
+  const moveControls = suggested
+    ? `<button class="focus-action-button focus-add-button" type="button" data-action="focus-add" data-id="${action.id}">Add to my Top 3</button>`
+    : `
+      <button class="focus-action-button" type="button" data-action="focus-up" data-id="${action.id}" aria-label="Move earlier" ${rank === 1 ? 'disabled' : ''}>Earlier</button>
+      <button class="focus-action-button" type="button" data-action="focus-down" data-id="${action.id}" aria-label="Move later" ${rank === planLength ? 'disabled' : ''}>Later</button>
+      <button class="focus-action-button focus-remove-button" type="button" data-action="focus-remove" data-id="${action.id}">Remove</button>
+    `;
+
+  return `
+    <article class="focus-task-card ${suggested ? 'suggested' : ''} ${!suggested && rank === 1 ? 'next-up' : ''}" data-id="${action.id}">
+      <div class="focus-task-main">
+        <div class="focus-task-heading">
+          <span class="focus-position">${positionLabel}</span>
+          <div class="focus-task-copy">
+            <h3>${title}</h3>
+            <span class="focus-reason">${escapeHtml(reason)}</span>
+          </div>
+        </div>
+        <div class="focus-task-meta">
+          <span class="badge ${action.category}">${categoryLabel}</span>
+          ${action.project ? `<span class="badge project-badge">${escapeHtml(action.project)}</span>` : ''}
+          <span class="badge importance-${action.importance}">${badgeText('importance', action.importance)}</span>
+          <span class="badge urgency-${action.urgency}">${badgeText('urgency', action.urgency)}</span>
+          ${dueLabel}
+        </div>
+        ${notes}
+      </div>
+      <div class="focus-task-actions">
+        ${moveControls}
+        <button class="action-toggle" type="button" data-action="toggle" data-id="${action.id}" aria-label="Mark action done" title="Mark action done">${iconSvg('check')}</button>
+        <button class="action-edit" type="button" data-action="edit" data-id="${action.id}" aria-label="Edit action" title="Edit action">${iconSvg('pen')}</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderFocusView() {
+  const plan = getTodayFocusPlan();
+  const candidates = getFocusCandidates().slice(0, Math.max(0, 3 - plan.length));
+  const visibleActions = supabaseClient && currentUser
+    ? state.actions.filter((action) => isActionOwnedByCurrentUser(action))
+    : state.actions;
+  const allOpenActions = visibleActions.filter((action) => !isDeleted(action) && !action.completed);
+  const planMarkup = plan.length
+    ? plan.map((action, index) => renderFocusCard(action, index + 1, false, plan.length)).join('')
+    : '<p class="focus-empty-copy">Choose one suggested action to make it your next step. You can add up to three.</p>';
+  const suggestionsMarkup = candidates
+    .map((action) => renderFocusCard(action, 0, true))
+    .join('');
+  const suggestionsMessage = plan.length >= 3
+    ? '<p class="focus-empty-copy">Your three focus spots are filled. Move, remove, or complete an action to make room.</p>'
+    : allOpenActions.length
+      ? '<p class="focus-empty-copy">No more open actions to suggest. Add an action above or browse All tasks.</p>'
+      : '<p class="focus-empty-copy">No open actions yet. Capture one above and we’ll help you choose what to do next.</p>';
+
+  actionList.innerHTML = `
+    <div class="focus-view-content">
+      <div class="focus-intro">
+        <p>Pick up to three actions for today. Suggestions use due dates and your saved importance and urgency; you stay in control.</p>
+        <span class="focus-plan-count">${plan.length} of 3 chosen</span>
+      </div>
+      <section class="focus-section" aria-labelledby="focusPlanHeading">
+        <h3 id="focusPlanHeading">Your focus</h3>
+        <div class="focus-task-list">${planMarkup}</div>
+      </section>
+      <section class="focus-section focus-suggestions" aria-labelledby="focusSuggestionsHeading">
+        <h3 id="focusSuggestionsHeading">Suggested next</h3>
+        ${candidates.length ? `<div class="focus-task-list">${suggestionsMarkup}</div>` : suggestionsMessage}
+      </section>
+    </div>
+  `;
+  renderSummary();
+}
+
 function renderMatrix() {
   const actions = getFilteredActions().filter((action) => !action.completed);
   if (!actions.length && currentSearchTerm.trim()) {
@@ -1001,7 +1188,7 @@ function exportActions(format) {
   }
 
   if (format === 'csv') {
-    const columns = ['title', 'category', 'importance', 'urgency', 'project', 'hashtags', 'dueDate', 'completed', 'createdAt'];
+    const columns = ['title', 'category', 'importance', 'urgency', 'project', 'hashtags', 'dueDate', 'focusDate', 'focusRank', 'completed', 'createdAt'];
     const rows = [columns.join(',')];
     actions.forEach((action) => {
       rows.push(columns.map((column) => {
@@ -1149,7 +1336,9 @@ function renderDoneSection(doneActions) {
 function syncCardSearchControls() {
   if (!cardSearchToggle || !cardSearchPanel) return;
 
-  cardSearchPanel.hidden = !isCardSearchOpen;
+  const searchAvailable = currentView !== 'focus';
+  cardSearchToggle.hidden = !searchAvailable;
+  cardSearchPanel.hidden = !searchAvailable || !isCardSearchOpen;
   cardSearchToggle.setAttribute('aria-expanded', String(isCardSearchOpen));
   cardSearchToggle.setAttribute('aria-label', isCardSearchOpen ? 'Close card search' : 'Search cards');
   setButtonIcon(cardSearchToggle, isCardSearchOpen ? 'x' : 'search');
@@ -1157,10 +1346,23 @@ function syncCardSearchControls() {
 }
 
 function syncListViewControls() {
+  const headings = {
+    focus: "Today's focus",
+    list: 'All tasks',
+    timeline: 'Timeline',
+    matrix: 'Priority matrix',
+  };
+  if (viewHeading) viewHeading.textContent = headings[currentView] || 'All tasks';
+  document.querySelectorAll('.view-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.view === currentView);
+  });
+  appShell?.classList.toggle('focus-view', currentView === 'focus');
+
   if (compactViewToggle) {
     compactViewToggle.hidden = currentView !== 'list';
     compactViewToggle.setAttribute('aria-pressed', String(currentView === 'list' && isCompactList));
   }
+  if (readTopActionsButton) readTopActionsButton.hidden = currentView === 'focus';
   actionList.classList.toggle('compact', currentView === 'list' && isCompactList);
 }
 
@@ -1195,6 +1397,10 @@ function renderActions() {
   syncProjectSuggestions();
   syncProjectFilterOptions();
   syncHashtagFilterOptions();
+  if (currentView === 'focus') {
+    renderFocusView();
+    return;
+  }
   if (currentView === 'timeline') {
     renderTimeline();
     return;
@@ -1424,17 +1630,26 @@ function addAction() {
 }
 
 function toggleAction(id) {
+  const existingAction = state.actions.find((action) => action.id === id);
+  if (!existingAction) return;
+
+  const nextCompleted = !existingAction.completed;
   state.actions = state.actions.map((action) => {
     if (action.id === id) {
       return {
         ...action,
         userId: action.userId || (currentUser ? currentUser.id : null),
-        completed: !action.completed,
+        completed: nextCompleted,
         updatedAt: new Date().toISOString(),
       };
     }
     return action;
   });
+
+  const changedFocusIds = nextCompleted
+    ? applyTodayFocusPlan(getTodayFocusPlan().filter((action) => action.id !== id).map((action) => action.id))
+    : [];
+  changedFocusIds.forEach(markActionPending);
   markActionPending(id);
   saveActions();
   renderActions();
@@ -1535,7 +1750,26 @@ function handleActionListClick(event) {
   const id = target.dataset.id;
   const actionType = target.dataset.action;
 
+  if (actionType === 'focus-add') {
+    addToTodayFocus(id);
+    return;
+  }
+
+  if (actionType === 'focus-remove') {
+    removeFromTodayFocus(id);
+    return;
+  }
+
+  if (actionType === 'focus-up' || actionType === 'focus-down') {
+    moveTodayFocusAction(id, actionType === 'focus-up' ? -1 : 1);
+    return;
+  }
+
   if (actionType === 'edit') {
+    if (currentView === 'focus') {
+      currentView = 'list';
+      syncListViewControls();
+    }
     startEditAction(id);
     return;
   }
@@ -2011,9 +2245,11 @@ function bindUI() {
   document.querySelectorAll('.view-tab').forEach((button) => {
     button.addEventListener('click', () => {
       currentView = button.dataset.view;
-      document.querySelectorAll('.view-tab').forEach((tab) => {
-        tab.classList.toggle('active', tab.dataset.view === currentView);
-      });
+      if (currentView === 'focus') {
+        isCardSearchOpen = false;
+        updateCardSearchTerm('');
+        if (cardSearchInput) cardSearchInput.value = '';
+      }
       renderActions();
     });
   });

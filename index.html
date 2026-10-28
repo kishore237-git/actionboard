@@ -15,7 +15,7 @@
     <link rel="icon" href="icons/icon.svg?v=20260917" type="image/svg+xml" />
     <link rel="icon" href="icons/favicon-32.png?v=20260917" sizes="32x32" type="image/png" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=20260917" />
-    <link rel="stylesheet" href="styles.css?v=20261028.10" />
+    <link rel="stylesheet" href="styles.css?v=20261028.11" />
   </head>
   <body>
     <div class="app-shell">
@@ -189,9 +189,10 @@
 
       <section class="list-header">
         <div class="header-title-group">
-          <h2>Priority view</h2>
+          <h2 id="viewHeading">Today's focus</h2>
           <div class="view-switcher" aria-label="View selector">
-            <button class="view-tab active" data-view="list" type="button">List</button>
+            <button class="view-tab active" data-view="focus" type="button">Focus</button>
+            <button class="view-tab" data-view="list" type="button">All tasks</button>
             <button class="view-tab" data-view="timeline" type="button">Timeline</button>
             <button class="view-tab" data-view="matrix" type="button">Matrix</button>
           </div>
@@ -255,7 +256,7 @@
       window.SUPABASE_URL = 'https://stalwkqpwjivqrejlsig.supabase.co';
       window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
     </script>
-    <script src="sort-logic.js?v=20260913.5"></script>
-    <script src="app.js?v=20261028.10"></script>
+    <script src="sort-logic.js?v=20261028.1"></script>
+    <script src="app.js?v=20261028.11"></script>
   </body>
 </html>
