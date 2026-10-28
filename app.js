@@ -1768,12 +1768,13 @@ function bindUI() {
   });
   projectInput?.addEventListener('focus', () => {
     setComposerExpanded(true);
-    if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'block';
+    if (projectSuggestionsDropdown) {
+      projectSuggestionsDropdown.style.display = 'block';
+      syncProjectSuggestions();
+    }
   });
   projectInput?.addEventListener('blur', () => {
-    setTimeout(() => {
-      if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
-    }, 200);
+    if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
   });
   projectInput?.addEventListener('input', () => {
     if (projectSuggestionsDropdown) {
@@ -1785,11 +1786,20 @@ function bindUI() {
       projectSuggestionsDropdown.style.display = filterText || getProjectNames().length > 0 ? 'block' : 'none';
     }
   });
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('.project-suggestion')) {
-      if (projectInput) projectInput.value = e.target.dataset.project;
+  document.addEventListener('mousedown', (e) => {
+    const suggestion = e.target.closest('.project-suggestion');
+    if (suggestion) {
+      e.preventDefault();
+      if (projectInput) projectInput.value = suggestion.dataset.project;
       if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
+      projectInput?.focus();
     }
+  });
+  projectSuggestionsDropdown?.addEventListener('mouseenter', () => {
+    if (projectInput) projectInput.dataset.dropdownHovered = 'true';
+  });
+  projectSuggestionsDropdown?.addEventListener('mouseleave', () => {
+    if (projectInput) delete projectInput.dataset.dropdownHovered;
   });
 
   darkModeToggle.addEventListener('click', () => {
