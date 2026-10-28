@@ -1305,9 +1305,7 @@ body.dark-mode .context-select {
 }
 
 .focus-task-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 14px;
   padding: 14px;
   border: 1px solid var(--border);
@@ -1328,7 +1326,6 @@ body.dark-mode .context-select {
   display: grid;
   gap: 8px;
   min-width: 0;
-  flex: 1;
 }
 
 .focus-task-heading {
@@ -1373,7 +1370,8 @@ body.dark-mode .context-select {
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  flex: 0 0 auto;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .focus-action-button {
@@ -1414,13 +1412,11 @@ body.dark-mode .focus-task-card.suggested {
   }
 
   .focus-task-card {
-    align-items: stretch;
-    flex-direction: column;
+    gap: 10px;
   }
 
   .focus-task-actions {
     justify-content: flex-start;
-    flex-wrap: wrap;
   }
 }
 
