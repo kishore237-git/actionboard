@@ -1599,13 +1599,17 @@ function handleSwipeGestures(event) {
 function setComposerExpanded(isExpanded) {
   if (!composerCard) return;
   const shouldExpand = Boolean(isExpanded);
+  const activeElementBeforeExpand = document.activeElement;
   composerCard.classList.toggle('composer-collapsed', !shouldExpand);
   composerCard.classList.toggle('expanded', shouldExpand);
   composerCard.classList.toggle('focus-mode', shouldExpand);
 
   if (shouldExpand) {
     requestAnimationFrame(() => {
-      actionInput?.focus();
+      const activeElement = document.activeElement;
+      if (activeElement === activeElementBeforeExpand || activeElement === document.body) {
+        actionInput?.focus();
+      }
     });
   }
 }
