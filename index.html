@@ -15,7 +15,7 @@
     <link rel="icon" href="icons/icon.svg?v=20260917" type="image/svg+xml" />
     <link rel="icon" href="icons/favicon-32.png?v=20260917" sizes="32x32" type="image/png" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=20260917" />
-    <link rel="stylesheet" href="styles.css?v=20261028.9" />
+    <link rel="stylesheet" href="styles.css?v=20261028.10" />
   </head>
   <body>
     <div class="app-shell">
@@ -195,6 +195,12 @@
             <button class="view-tab" data-view="timeline" type="button">Timeline</button>
             <button class="view-tab" data-view="matrix" type="button">Matrix</button>
           </div>
+        </div>
+        <div class="list-header-actions">
+          <div class="list-view-options">
+            <button id="cardSearchToggle" class="icon-button list-search-toggle" type="button" aria-label="Search cards" aria-expanded="false" aria-controls="cardSearchPanel"><span data-icon="search"></span></button>
+            <button id="compactViewToggle" class="compact-view-toggle" type="button" aria-label="Toggle compact card layout" aria-pressed="false" title="Toggle compact card layout">Compact</button>
+          </div>
           <button id="readTopActionsButton" class="icon-button read-aloud-button" type="button" aria-label="Read top actions aloud" title="Read top actions aloud"><span data-icon="volume"></span></button>
           <div class="export-wrap">
             <button id="exportButton" class="icon-button" type="button" aria-label="Export actions" title="Export actions" aria-haspopup="true" aria-expanded="false"><span data-icon="download"></span></button>
@@ -204,6 +210,11 @@
               <button type="button" data-export-format="ics">Export as Calendar (.ics)</button>
             </div>
           </div>
+        </div>
+        <div id="cardSearchPanel" class="card-search-panel" role="search" hidden>
+          <label class="sr-only" for="cardSearchInput">Search cards</label>
+          <input id="cardSearchInput" type="search" placeholder="Search title, notes, projects, or tags" autocomplete="off" enterkeyhint="search" />
+          <button id="clearCardSearchButton" class="clear-card-search-button" type="button" aria-label="Clear card search" title="Clear search" hidden><span data-icon="x"></span></button>
         </div>
       </section>
 
@@ -245,6 +256,6 @@
       window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YWx3a3Fwd2ppdnFyZWpsc2lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDYzMTUsImV4cCI6MjEwNDcyMjMxNX0.aH87elEG7VAKRlPJyzTjvpuUKcGQBG4BJKjS9dNEFhw';
     </script>
     <script src="sort-logic.js?v=20260913.5"></script>
-    <script src="app.js?v=20261028.8"></script>
+    <script src="app.js?v=20261028.10"></script>
   </body>
 </html>

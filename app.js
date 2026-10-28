@@ -6,6 +6,7 @@ if (window.__pulseNotesAppBootstrapped) {
   (() => {
   const STORAGE_KEY = 'pulse-notes-actions-v1';
   const SYNC_STORAGE_KEY = 'pulse-notes-sync-state';
+  const LIST_DENSITY_STORAGE_KEY = 'pulse-notes-list-density';
   const SYNC_URL = `${window.location.protocol}//${window.location.hostname}:9000/api/actions`;
   const VIEW_FILTERS = ['all', 'work', 'personal'];
   const SUPABASE_URL = window.SUPABASE_URL || '';
@@ -36,6 +37,10 @@ if (window.__pulseNotesAppBootstrapped) {
   let currentView = 'list';
   let currentProjectFilter = 'all';
   let currentHashtagFilter = '';
+  let currentSearchTerm = '';
+  let isCardSearchOpen = false;
+  let isCompactList = localStorage.getItem(LIST_DENSITY_STORAGE_KEY) === 'compact';
+  let doneSectionExpandedBeforeSearch = null;
   let isDoneSectionExpanded = false;
 
 const actionInput = document.getElementById('actionInput');
@@ -54,6 +59,11 @@ const projectInput = document.getElementById('projectInput');
 const projectSuggestionsDropdown = document.getElementById('projectSuggestionsDropdown');
 const projectFilter = document.getElementById('projectFilter');
 const hashtagFilterInput = document.getElementById('hashtagFilterInput');
+const cardSearchToggle = document.getElementById('cardSearchToggle');
+const cardSearchPanel = document.getElementById('cardSearchPanel');
+const cardSearchInput = document.getElementById('cardSearchInput');
+const clearCardSearchButton = document.getElementById('clearCardSearchButton');
+const compactViewToggle = document.getElementById('compactViewToggle');
 const readTopActionsButton = document.getElementById('readTopActionsButton');
 const syncButton = document.getElementById('syncButton');
 const installButton = document.getElementById('installButton');
@@ -691,6 +701,7 @@ function iconSvg(name, className = '') {
     x: '<path d="m6 6 12 12M18 6 6 18"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     more: '<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',
+    search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
     zap: '<path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/>',
   };
   return `<svg class="ui-icon ${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name] || paths.sparkles}</svg>`;
@@ -755,6 +766,7 @@ function getFilteredActions() {
   const filtered = visibleActions.filter((action) => {
     if (isDeleted(action)) return false;
 
+    if (!matchesCardSearch(action, currentSearchTerm)) return false;
     if (currentCategoryFilter !== 'all' && action.category !== currentCategoryFilter) return false;
     if (currentProjectFilter !== 'all' && action.project !== currentProjectFilter) return false;
     if (currentHashtagFilter && !getActionHashtags(action).includes(currentHashtagFilter.replace(/^#/, '').toLowerCase())) return false;
@@ -769,6 +781,24 @@ function getFilteredActions() {
   });
 
   return sortActions(filtered);
+}
+
+function matchesCardSearch(action, query) {
+  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return true;
+
+  const hashtags = getActionHashtags(action);
+  const searchableText = [
+    action.title,
+    action.notes,
+    action.project,
+    ...hashtags,
+    ...hashtags.map((tag) => `#${tag}`),
+  ]
+    .map((value) => String(value || '').toLocaleLowerCase())
+    .join(' ');
+
+  return terms.every((term) => searchableText.includes(term));
 }
 
 function badgeText(type, value) {
@@ -865,7 +895,9 @@ function renderTimeline() {
   const actions = getFilteredActions();
 
   if (!actions.length) {
-    actionList.innerHTML = '<div class="timeline-empty">No actions in this time range yet.</div>';
+    actionList.innerHTML = `<div class="timeline-empty">${currentSearchTerm.trim()
+      ? `No cards match "${escapeHtml(currentSearchTerm.trim())}".`
+      : 'No actions in this time range yet.'}</div>`;
     renderSummary();
     return;
   }
@@ -915,6 +947,12 @@ function renderTimeline() {
 
 function renderMatrix() {
   const actions = getFilteredActions().filter((action) => !action.completed);
+  if (!actions.length && currentSearchTerm.trim()) {
+    actionList.innerHTML = `<div class="empty-state">No cards match "${escapeHtml(currentSearchTerm.trim())}".</div>`;
+    renderSummary();
+    return;
+  }
+
   const quadrants = [
     { key: 'do', title: 'Do first', description: 'High importance, high urgency', test: (priority) => priority.importance >= 3 && priority.urgency >= 3 },
     { key: 'schedule', title: 'Schedule', description: 'High importance, lower urgency', test: (priority) => priority.importance >= 3 && priority.urgency < 3 },
@@ -1108,7 +1146,51 @@ function renderDoneSection(doneActions) {
   `;
 }
 
+function syncCardSearchControls() {
+  if (!cardSearchToggle || !cardSearchPanel) return;
+
+  cardSearchPanel.hidden = !isCardSearchOpen;
+  cardSearchToggle.setAttribute('aria-expanded', String(isCardSearchOpen));
+  cardSearchToggle.setAttribute('aria-label', isCardSearchOpen ? 'Close card search' : 'Search cards');
+  setButtonIcon(cardSearchToggle, isCardSearchOpen ? 'x' : 'search');
+  if (clearCardSearchButton) clearCardSearchButton.hidden = !currentSearchTerm.trim();
+}
+
+function syncListViewControls() {
+  if (compactViewToggle) {
+    compactViewToggle.hidden = currentView !== 'list';
+    compactViewToggle.setAttribute('aria-pressed', String(currentView === 'list' && isCompactList));
+  }
+  actionList.classList.toggle('compact', currentView === 'list' && isCompactList);
+}
+
+function closeCardSearch() {
+  isCardSearchOpen = false;
+  updateCardSearchTerm('');
+  if (cardSearchInput) cardSearchInput.value = '';
+  syncCardSearchControls();
+  renderActions();
+  cardSearchToggle?.focus();
+}
+
+function updateCardSearchTerm(query) {
+  const wasSearching = Boolean(currentSearchTerm.trim());
+  const isSearching = Boolean(query.trim());
+
+  if (!wasSearching && isSearching) {
+    doneSectionExpandedBeforeSearch = isDoneSectionExpanded;
+    isDoneSectionExpanded = true;
+  } else if (wasSearching && !isSearching && doneSectionExpandedBeforeSearch !== null) {
+    isDoneSectionExpanded = doneSectionExpandedBeforeSearch;
+    doneSectionExpandedBeforeSearch = null;
+  }
+
+  currentSearchTerm = query;
+}
+
 function renderActions() {
+  syncCardSearchControls();
+  syncListViewControls();
   syncDemoNotice();
   syncProjectSuggestions();
   syncProjectFilterOptions();
@@ -1127,7 +1209,9 @@ function renderActions() {
   const doneActions = actions.filter((action) => action.completed);
 
   if (!actions.length) {
-    actionList.innerHTML = `<div class="empty-state">No actions here yet. Capture your next move.</div>`;
+    actionList.innerHTML = `<div class="empty-state">${currentSearchTerm.trim()
+      ? `No cards match "${escapeHtml(currentSearchTerm.trim())}".`
+      : 'No actions here yet. Capture your next move.'}</div>`;
     renderSummary();
     return;
   }
@@ -1874,6 +1958,53 @@ function bindUI() {
 
   hashtagFilterInput?.addEventListener('input', () => {
     currentHashtagFilter = hashtagFilterInput.value.trim();
+    renderActions();
+  });
+
+  cardSearchToggle?.addEventListener('click', () => {
+    if (isCardSearchOpen) {
+      closeCardSearch();
+      return;
+    }
+
+    isCardSearchOpen = true;
+    syncCardSearchControls();
+    cardSearchInput?.focus();
+  });
+
+  cardSearchInput?.addEventListener('input', () => {
+    updateCardSearchTerm(cardSearchInput.value);
+    syncCardSearchControls();
+    renderActions();
+  });
+
+  clearCardSearchButton?.addEventListener('click', () => {
+    updateCardSearchTerm('');
+    if (cardSearchInput) {
+      cardSearchInput.value = '';
+      cardSearchInput.focus();
+    }
+    syncCardSearchControls();
+    renderActions();
+  });
+
+  cardSearchInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (currentSearchTerm.trim()) {
+        updateCardSearchTerm('');
+        cardSearchInput.value = '';
+        syncCardSearchControls();
+        renderActions();
+      } else {
+        closeCardSearch();
+      }
+    }
+  });
+
+  compactViewToggle?.addEventListener('click', () => {
+    isCompactList = !isCompactList;
+    localStorage.setItem(LIST_DENSITY_STORAGE_KEY, isCompactList ? 'compact' : 'standard');
     renderActions();
   });
 
