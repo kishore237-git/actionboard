@@ -1773,8 +1773,17 @@ function bindUI() {
     }
   });
   projectInput?.addEventListener('blur', () => {
-    if (projectSuggestionsDropdown) projectSuggestionsDropdown.style.display = 'none';
+    // Don't close dropdown on blur - let mousedown handler control this
+    // This prevents premature closing when user clicks suggestions
   });
+  
+  // Close dropdown when clicking outside the input wrapper
+  document.addEventListener('click', (e) => {
+    const isClickInsideWrapper = e.target.closest?.('.project-input-wrapper');
+    if (!isClickInsideWrapper && projectSuggestionsDropdown) {
+      projectSuggestionsDropdown.style.display = 'none';
+    }
+  }, true);
   projectInput?.addEventListener('input', () => {
     if (projectSuggestionsDropdown) {
       const filterText = (projectInput.value || '').toLowerCase();
