@@ -51,8 +51,6 @@ const actionList = document.getElementById('actionList');
 const demoNotice = document.getElementById('demoNotice');
 const startCleanButton = document.getElementById('startCleanButton');
 const projectInput = document.getElementById('projectInput');
-const projectPicker = document.getElementById('projectPicker');
-const projectPickerRow = document.getElementById('projectPickerRow');
 const projectFilter = document.getElementById('projectFilter');
 const hashtagFilterInput = document.getElementById('hashtagFilterInput');
 const readTopActionsButton = document.getElementById('readTopActionsButton');
@@ -628,14 +626,18 @@ function getProjectNames() {
     .sort((a, b) => a.localeCompare(b));
 }
 
-function syncProjectPickerOptions() {
-  if (!projectPicker || !projectPickerRow) return;
-  const projects = getProjectNames();
-  projectPicker.innerHTML = [
-    '<option value="">Choose an existing project</option>',
-    ...projects.map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`),
-  ].join('');
-  projectPickerRow.hidden = projects.length === 0;
+function syncProjectSuggestions() {
+  if (!projectInput) return;
+  projectInput.setAttribute('list', 'projectOptions');
+  let datalist = document.getElementById('projectOptions');
+  if (!datalist) {
+    datalist = document.createElement('datalist');
+    datalist.id = 'projectOptions';
+    document.body.appendChild(datalist);
+  }
+  datalist.innerHTML = getProjectNames()
+    .map((project) => `<option value="${escapeHtml(project)}"></option>`)
+    .join('');
 }
 
 function syncProjectFilterOptions() {
@@ -1109,7 +1111,7 @@ function renderDoneSection(doneActions) {
 
 function renderActions() {
   syncDemoNotice();
-  syncProjectPickerOptions();
+  syncProjectSuggestions();
   syncProjectFilterOptions();
   syncHashtagFilterOptions();
   if (currentView === 'timeline') {
@@ -1275,7 +1277,6 @@ function syncUrgencySelection() {
 function resetComposerForm() {
   actionInput.value = '';
   if (projectInput) projectInput.value = '';
-  if (projectPicker) projectPicker.value = '';
   dueDateInput.value = '';
   selectedCategory = 'work';
   selectedImportance = 2;
@@ -1769,12 +1770,6 @@ function bindUI() {
   });
   quickAddButton?.addEventListener('click', () => {
     setComposerExpanded(true);
-  });
-  projectPicker?.addEventListener('change', () => {
-    if (projectInput) projectInput.value = projectPicker.value;
-  });
-  projectInput?.addEventListener('input', () => {
-    if (projectPicker) projectPicker.value = '';
   });
   actionInput?.addEventListener('focus', () => {
     setComposerExpanded(true);
